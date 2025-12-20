@@ -37,10 +37,10 @@ public class WaterMark extends Module {
         int whiteColor = 0xFFFFFF;
         int grayColor = 0xAAAAAA;
         
-        mc.fontRendererObj.drawStringWithShadow("N", x, y, nColor);
-        float nWidth = mc.fontRendererObj.getStringWidth("N");
+        mc.fontRendererObj.drawStringWithShadow("E", x, y, nColor);
+        float nWidth = mc.fontRendererObj.getStringWidth("E");
         
-        mc.fontRendererObj.drawStringWithShadow("ightSky ", x + nWidth, y, whiteColor);
+        mc.fontRendererObj.drawStringWithShadow("pilogue ", x + nWidth, y, whiteColor);
         float nightSkyWidth = mc.fontRendererObj.getStringWidth("Epilogue ");
         
         mc.fontRendererObj.drawStringWithShadow("[", x + nightSkyWidth, y, grayColor);
