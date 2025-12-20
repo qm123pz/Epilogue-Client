@@ -4,12 +4,14 @@ import epilogue.ui.clickgui.menu.Fonts;
 import epilogue.ui.clickgui.menu.component.SettingComponent;
 import epilogue.ui.clickgui.menu.render.DrawUtil;
 import epilogue.util.render.ColorUtil;
+import epilogue.util.render.PostProcessing;
 import epilogue.util.render.RenderUtil;
 import epilogue.util.render.animations.advanced.Animation;
 import epilogue.util.render.animations.advanced.Direction;
 import epilogue.util.render.animations.advanced.impl.DecelerateAnimation;
 import epilogue.util.render.animations.advanced.impl.SmoothStepAnimation;
 import epilogue.value.values.ModeValue;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.MathHelper;
 import org.lwjgl.input.Mouse;
@@ -38,9 +40,16 @@ public class ModeComponent extends SettingComponent<ModeValue> {
 
     @Override
     public void draw(int mouseX, int mouseY) {
-        Fonts.draw(Fonts.small(), setting.getName(), x + 10, y + 4, ColorUtil.applyOpacity(0xFFFFFFFF, 0.4f));
+        if (alpha <= 0.0f) {
+            return;
+        }
+
+        Fonts.draw(Fonts.small(), setting.getName(), x + 10, y + 4, ColorUtil.applyOpacity(0xFFFFFFFF, 0.4f * alpha));
 
         open.setDirection(opened ? Direction.FORWARDS : Direction.BACKWARDS);
+
+        boolean embeddedInDynamicIsland = mc.currentScreen instanceof epilogue.ui.clickgui.menu.MenuClickGui
+                && ((epilogue.ui.clickgui.menu.MenuClickGui) mc.currentScreen).isEmbeddedInDynamicIsland();
 
         if (open.getOutput() > 0.1) {
             float totalHeight = (float) ((setting.getModes().length * 20 + 2) * open.getOutput());
@@ -48,7 +57,25 @@ public class ModeComponent extends SettingComponent<ModeValue> {
 
             GlStateManager.translate(0, 0, 2f);
 
-            RenderUtil.drawRect(x + 10, y + 32, 145, totalHeight, 0xFF000000);
+            if (embeddedInDynamicIsland) {
+                int bgA = 40;
+                try {
+                    epilogue.module.modules.render.dynamicisland.DynamicIsland di = (epilogue.module.modules.render.dynamicisland.DynamicIsland) epilogue.Epilogue.moduleManager.modules.get(epilogue.module.modules.render.dynamicisland.DynamicIsland.class);
+                    if (di != null) {
+                        bgA = di.bgAlpha.getValue();
+                    }
+                } catch (Exception ignored) {
+                }
+                int alphaRect = (bgA << 24);
+                float fx = x + 10;
+                float fy = y + 32;
+                float fw = 145;
+                float fh = totalHeight;
+                PostProcessing.drawBlur(fx, fy, fx + fw, fy + fh, () -> () -> RenderUtil.drawRect(fx, fy, fw, fh, -1));
+                RenderUtil.drawRect(fx, fy, fw, fh, alphaRect);
+            } else {
+                RenderUtil.drawRect(x + 10, y + 32, 145, totalHeight, 0xFF000000);
+            }
 
             String[] modes = setting.getModes();
             for (int i = 0; i < modes.length; i++) {
@@ -65,10 +92,28 @@ public class ModeComponent extends SettingComponent<ModeValue> {
             GlStateManager.translate(0, 0, -2f);
         }
 
-        RenderUtil.drawRect(x + 10, y + 14, 145, 14, 0xFF000000);
+        if (embeddedInDynamicIsland) {
+            int bgA = 40;
+            try {
+                epilogue.module.modules.render.dynamicisland.DynamicIsland di = (epilogue.module.modules.render.dynamicisland.DynamicIsland) epilogue.Epilogue.moduleManager.modules.get(epilogue.module.modules.render.dynamicisland.DynamicIsland.class);
+                if (di != null) {
+                    bgA = di.bgAlpha.getValue();
+                }
+            } catch (Exception ignored) {
+            }
+            int alphaRect = (bgA << 24);
+            float fx = x + 10;
+            float fy = y + 14;
+            float fw = 145;
+            float fh = 14;
+            PostProcessing.drawBlur(fx, fy, fx + fw, fy + fh, () -> () -> RenderUtil.drawRect(fx, fy, fw, fh, -1));
+            RenderUtil.drawRect(fx, fy, fw, fh, alphaRect);
+        } else {
+            RenderUtil.drawRect(x + 10, y + 14, 145, 14, 0xFF000000);
+        }
 
-        Fonts.draw(Fonts.tiny(), setting.getModeString(), x + 14, y + 15 + (Fonts.height(Fonts.tiny()) * 0.1f), ColorUtil.applyOpacity(0xFFFFFFFF, 1f));
-        Fonts.draw(Fonts.icon(), "U", x + 145, y + 20, ColorUtil.applyOpacity(0xFFFFFFFF, 1f));
+        Fonts.draw(Fonts.tiny(), setting.getModeString(), x + 14, y + 18.5f + (Fonts.height(Fonts.tiny()) * 0.1f), ColorUtil.applyOpacity(0xFFFFFFFF, alpha));
+        Fonts.draw(Fonts.icon(), "U", x + 145, y + 16.5f, ColorUtil.applyOpacity(0xFFFFFFFF, alpha));
     }
 
     @Override

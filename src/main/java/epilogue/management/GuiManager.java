@@ -1,7 +1,9 @@
 package epilogue.management;
+
 import net.minecraft.client.Minecraft;
 import epilogue.ui.clickgui.dropdown.DropdownClickGui;
 import epilogue.ui.clickgui.menu.MenuClickGui;
+
 public class GuiManager {
     private final Minecraft mc = Minecraft.getMinecraft();
     private final DropdownClickGui dropdownClickGui;
@@ -15,6 +17,7 @@ public class GuiManager {
         }
         return menuClickGui;
     }
+
     public void closeAllGuis() {
         closeDropdownGui();
         closeMenuGui();
@@ -32,8 +35,13 @@ public class GuiManager {
         return mc.currentScreen == dropdownClickGui;
     }
     public void openMenuGui() {
+        openMenuGui(false);
+    }
+    public void openMenuGui(boolean embedIntoDynamicIsland) {
         closeAllGuis();
-        mc.displayGuiScreen(getArcane());
+        MenuClickGui gui = getArcane();
+        gui.setEmbeddedInDynamicIsland(embedIntoDynamicIsland);
+        mc.displayGuiScreen(gui);
     }
     public void closeMenuGui() {
         if (menuClickGui != null && mc.currentScreen == menuClickGui) {

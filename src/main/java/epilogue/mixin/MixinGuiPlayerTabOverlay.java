@@ -22,7 +22,7 @@ public abstract class MixinGuiPlayerTabOverlay {
     private void onRenderPlayerlist(int width, net.minecraft.scoreboard.Scoreboard scoreboard, ScoreObjective scoreObjective, CallbackInfo ci) {
         if (Epilogue.moduleManager != null) {
             DynamicIsland dynamicIsland = (DynamicIsland) Epilogue.moduleManager.modules.get(DynamicIsland.class);
-            if (dynamicIsland != null && dynamicIsland.isEnabled()) {
+            if (dynamicIsland != null && dynamicIsland.isEnabled() && dynamicIsland.mode.getValue() != 1) {
                 ci.cancel();
             }
         }

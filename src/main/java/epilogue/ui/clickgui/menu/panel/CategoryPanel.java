@@ -194,9 +194,9 @@ public class CategoryPanel {
             case MOVEMENT:
                 return "B";
             case PLAYER:
-                return "C";
-            case RENDER:
                 return "D";
+            case RENDER:
+                return "C";
             case MISC:
                 return "E";
             default:

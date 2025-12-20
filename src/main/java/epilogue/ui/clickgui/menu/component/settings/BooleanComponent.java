@@ -29,14 +29,17 @@ public class BooleanComponent extends SettingComponent<BooleanValue> {
 
     @Override
     public void draw(int mouseX, int mouseY) {
+        if (alpha <= 0.0f) {
+            return;
+        }
         enabled.setDirection(setting.getValue() ? Direction.FORWARDS : Direction.BACKWARDS);
         hover.setDirection(DrawUtil.isHovering(x + 135, y + 4, 22, 12, mouseX, mouseY) ? Direction.FORWARDS : Direction.BACKWARDS);
 
-        Fonts.draw(Fonts.small(), setting.getName(), x + 10, y + 4, ColorUtil.applyOpacity(0xFFFFFFFF, 0.4f));
+        Fonts.draw(Fonts.small(), setting.getName(), x + 10, y + 4, ColorUtil.applyOpacity(0xFFFFFFFF, 0.4f * alpha));
 
-        int track = setting.getValue() ? ColorUtil.applyOpacity(0xFFFFFFFF, 0.22f) : ColorUtil.applyOpacity(0xFFFFFFFF, 0.12f);
+        int track = setting.getValue() ? ColorUtil.applyOpacity(0xFFFFFFFF, 0.22f * alpha) : ColorUtil.applyOpacity(0xFFFFFFFF, 0.12f * alpha);
         RenderUtil.drawRect(x + 135, y + 4, 20, 10, track);
-        DrawUtil.drawCircleCGUI(x + 141 + (float) (enabled.getOutput() * 9f), y + 9, 8, 0xFFFFFFFF);
+        DrawUtil.drawCircleCGUI(x + 141 + (float) (enabled.getOutput() * 9f), y + 9, 8, ColorUtil.applyOpacity(0xFFFFFFFF, alpha));
     }
 
     @Override

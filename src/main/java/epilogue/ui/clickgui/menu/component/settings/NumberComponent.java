@@ -39,20 +39,23 @@ public abstract class NumberComponent<T extends Value<?>> extends SettingCompone
 
     @Override
     public void draw(int mouseX, int mouseY) {
+        if (alpha <= 0.0f) {
+            return;
+        }
         int w = 145;
         double min = getMin();
         double max = getMax();
         double val = getValue();
         anim = DrawUtil.animate(anim, (float) (w * (val - min) / (max - min)), 50);
 
-        Fonts.draw(Fonts.small(), this.setting.getName(), x + 10, y + 4, ColorUtil.applyOpacity(0xFFFFFFFF, 0.4f));
+        Fonts.draw(Fonts.small(), this.setting.getName(), x + 10, y + 4, ColorUtil.applyOpacity(0xFFFFFFFF, 0.4f * alpha));
         String valueStr = format();
-        Fonts.draw(Fonts.small(), valueStr, x + 155 - Fonts.width(Fonts.small(), valueStr), y + 4, ColorUtil.applyOpacity(0xFFFFFFFF, 0.4f));
+        Fonts.draw(Fonts.small(), valueStr, x + 155 - Fonts.width(Fonts.small(), valueStr), y + 4, ColorUtil.applyOpacity(0xFFFFFFFF, 0.4f * alpha));
 
-        int base = ColorUtil.applyOpacity(0xFFFFFFFF, 0.18f);
+        int base = ColorUtil.applyOpacity(0xFFFFFFFF, 0.18f * alpha);
         RenderUtil.drawRect(x + 10, y + 18, w, 2, base);
-        RenderUtil.drawRect(x + 10, y + 18, anim, 2, 0xFFFFFFFF);
-        RenderUtil.drawRect(x + 5 + anim, y + 16.5f, 6, 6, 0xFFFFFFFF);
+        RenderUtil.drawRect(x + 10, y + 18, anim, 2, ColorUtil.applyOpacity(0xFFFFFFFF, alpha));
+        RenderUtil.drawRect(x + 5 + anim, y + 16.5f, 6, 6, ColorUtil.applyOpacity(0xFFFFFFFF, alpha));
 
         if (dragging) {
             double difference = max - min;

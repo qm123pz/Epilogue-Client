@@ -24,6 +24,8 @@ import epilogue.value.values.ModeValue;
 import epilogue.font.FontTransformer;
 import epilogue.font.CustomFontRenderer;
 import epilogue.ui.command.CommandInterface;
+import epilogue.ui.clickgui.menu.MenuClickGui;
+import epilogue.ui.clickgui.dropdown.DropdownClickGui;
 import epilogue.events.KeyEvent;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
@@ -35,9 +37,9 @@ import java.util.List;
 
 public class DynamicIsland extends Module {
 
-    private final ModeValue mode = new ModeValue("Mode", 1, new String[]{"Normal", "Flat"});
+    public final ModeValue mode = new ModeValue("Mode", 1, new String[]{"Normal", "Flat"});
     private final FloatValue animationSpeed = new FloatValue("AnimationSpeed", 12.0f, 1.0f, 20.0f, () -> mode.getValue() == 0);
-    private final IntValue bgAlpha = new IntValue("BackgroundAlpha", 40, 1, 255, () -> mode.getValue() == 0);
+    public final IntValue bgAlpha = new IntValue("BackgroundAlpha", 40, 1, 255, () -> mode.getValue() == 0);
     private final BooleanValue showNotifications = new BooleanValue("ShowNotifications", true, () -> mode.getValue() == 0);
     private final ModeValue animationMode = new ModeValue("AnimationMode", 0, new String[]{"Normal", "Custom"}, () -> mode.getValue() == 0);
     private final FloatValue customMass = new FloatValue("CustomMass", 1.0f, 0.1f, 5.0f, () -> mode.getValue() == 0 && animationMode.getValue() == 1);
@@ -59,11 +61,6 @@ public class DynamicIsland extends Module {
     private final FloatValue anticipationDuration = new FloatValue("AnticipationDuration", 100.0f, 50.0f, 300.0f, () -> mode.getValue() == 0 && animationMode.getValue() == 1);
 
     private final Minecraft mc = Minecraft.getMinecraft();
-
-    private final float alpha = bgAlpha.getValue() * 0.0003f;
-    private final float shadowRadius = 8f;
-    private final float shadowSpread = 0.07f;
-    private final float shadowAlpha = 0.03f + alpha;
 
     private double currentWidth = 0;
     private double currentHeight = 0;
@@ -223,11 +220,14 @@ public class DynamicIsland extends Module {
         ChestStealer chestStealer = (ChestStealer) Epilogue.moduleManager.modules.get(ChestStealer.class);
         chestExpanded = chestStealer != null && chestStealer.isEnabled() && ChestData.getInstance().isChestOpen() && !commandInterface.isActive();
 
+        boolean embeddedClickGui = mc.currentScreen instanceof MenuClickGui && ((MenuClickGui) mc.currentScreen).isEmbeddedInDynamicIsland();
+        boolean clickGuiOpen = mc.currentScreen instanceof MenuClickGui || mc.currentScreen instanceof DropdownClickGui;
+
         ScaledResolution sr = new ScaledResolution(mc);
         buildDisplayText();
 
         List<Notification> activeNotifications = NotificationManager.getInstance().getActiveNotifications();
-        boolean hasNotifications = !activeNotifications.isEmpty() && showNotifications.getValue();
+        boolean hasNotifications = !activeNotifications.isEmpty() && showNotifications.getValue() && !clickGuiOpen;
 
         if (wasShowingNotifications && !hasNotifications) {
             mainInterfaceSlideStartTime = currentTime;
@@ -254,6 +254,12 @@ public class DynamicIsland extends Module {
             int rows = Math.max(3, chestSize / 9);
             targetWidth = 9 * 20 + 12 * 3;
             targetHeight = rows * 20 + 12 * 3;
+        } else if (embeddedClickGui) {
+            MenuClickGui gui = (MenuClickGui) mc.currentScreen;
+            double paddingX = 12;
+            double paddingY = 18;
+            targetWidth = gui.w + paddingX * 2;
+            targetHeight = gui.h + paddingY * 2;
         } else if (commandInterface.isActive()) {
             targetWidth = commandInterface.getExpandedWidth();
             targetHeight = commandInterface.getExpandedHeight();
@@ -294,82 +300,83 @@ public class DynamicIsland extends Module {
             }
         }
 
-        if (commandInterface.isActive()) {
-        } else if (showingPlayerList) {
-            Collection<NetworkPlayerInfo> playerInfos = mc.getNetHandler().getPlayerInfoMap();
-            double playerListWidth = calculatePlayerListWidth(playerInfos);
-            targetWidth = playerListWidth + padding * 2;
-            targetHeight = calculatePlayerListHeight(playerInfos) + padding * 2;
-        } else if (showingCommandResult) {
-            double commandResultSize = calculateCommandResultSize();
-            targetWidth = commandResultSize + padding * 2;
-            targetHeight = calculateCommandResultHeight() + padding * 2;
-        } else if (hasNotifications) {
-            double notificationContentWidth = calculateNotificationContentWidth(activeNotifications);
-            targetWidth = notificationContentWidth + padding;
+        if (!embeddedClickGui && !commandInterface.isActive()) {
+            if (showingPlayerList) {
+                Collection<NetworkPlayerInfo> playerInfos = mc.getNetHandler().getPlayerInfoMap();
+                double playerListWidth = calculatePlayerListWidth(playerInfos);
+                targetWidth = playerListWidth + padding * 2;
+                targetHeight = calculatePlayerListHeight(playerInfos) + padding * 2;
+            } else if (showingCommandResult) {
+                double commandResultSize = calculateCommandResultSize();
+                targetWidth = commandResultSize + padding * 2;
+                targetHeight = calculateCommandResultHeight() + padding * 2;
+            } else if (hasNotifications) {
+                double notificationContentWidth = calculateNotificationContentWidth(activeNotifications);
+                targetWidth = notificationContentWidth + padding;
 
-            float scale = 0.8f;
-            float totalHeight = 0;
-            for (Notification notification : activeNotifications) {
-                totalHeight += calculateNotificationItemHeight(notification.getType()) * scale;
-            }
-            targetHeight = totalHeight + padding * 2;
-        } else {
-            String serverIP = getServerIP();
-            int ping = mc.getCurrentServerData() != null ? (int) mc.getCurrentServerData().pingToServer : 0;
-            int fps = net.minecraft.client.Minecraft.getDebugFPS();
-
-            float scale = 0.58f;
-
-            FontTransformer transformer = FontTransformer.getInstance();
-            Font mainFont = transformer.getFont("MicrosoftYaHei", 50);
-            Font islandTextFont = transformer.getFont("MicrosoftYaHei", 38);
-            Font contentFont = transformer.getFont("MicrosoftYaHei", 40);
-
-            java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("M/d");
-            java.text.SimpleDateFormat weekFormat = new java.text.SimpleDateFormat("EEE", java.util.Locale.ENGLISH);
-            java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("HH:mm");
-            java.util.Date now = new java.util.Date();
-
-            String dateStr = dateFormat.format(now);
-            String weekStr = weekFormat.format(now);
-            String timeStr = timeFormat.format(now);
-
-            String line2Base = dateStr + " " + weekStr + " " + timeStr + " " + ping + "ms to " + serverIP + " " + fps + " FPS";
-            float line2BaseWidth = CustomFontRenderer.getStringWidth(line2Base, contentFont) * scale;
-
-            if (minLine2Width == 0.0f) {
-                minLine2Width = line2BaseWidth;
-            }
-
-            String currentText = islandText[currentTextIndex];
-
-            float nightskyWidth = CustomFontRenderer.getStringWidth("Epilogue", mainFont);
-            float currentTextWidth = CustomFontRenderer.getStringWidth(currentText, islandTextFont);
-
-            float line1BaseWidth = nightskyWidth + 10;
-            float line1TotalWidth = (line1BaseWidth + currentTextWidth) * scale;
-
-            float requiredWidth = line1TotalWidth + 80 * scale;
-
-            if (currentDisplayWidth == 0.0f) {
-                currentDisplayWidth = requiredWidth;
-            } else {
-                float widthDelta = requiredWidth - currentDisplayWidth;
-                float widthSpeed = 3.5f;
-                if (Math.abs(widthDelta) > 0.5f) {
-                    currentDisplayWidth += widthDelta * widthSpeed * deltaTime;
-                } else {
-                    currentDisplayWidth = requiredWidth;
+                float scale = 0.8f;
+                float totalHeight = 0;
+                for (Notification notification : activeNotifications) {
+                    totalHeight += calculateNotificationItemHeight(notification.getType()) * scale;
                 }
+                targetHeight = totalHeight + padding * 2;
+            } else {
+                String serverIP = getServerIP();
+                int ping = mc.getCurrentServerData() != null ? (int) mc.getCurrentServerData().pingToServer : 0;
+                int fps = net.minecraft.client.Minecraft.getDebugFPS();
+
+                float scale = 0.58f;
+
+                FontTransformer transformer = FontTransformer.getInstance();
+                Font mainFont = transformer.getFont("MicrosoftYaHei", 50);
+                Font islandTextFont = transformer.getFont("MicrosoftYaHei", 38);
+                Font contentFont = transformer.getFont("MicrosoftYaHei", 40);
+
+                java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("M/d");
+                java.text.SimpleDateFormat weekFormat = new java.text.SimpleDateFormat("EEE", java.util.Locale.ENGLISH);
+                java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("HH:mm");
+                java.util.Date now = new java.util.Date();
+
+                String dateStr = dateFormat.format(now);
+                String weekStr = weekFormat.format(now);
+                String timeStr = timeFormat.format(now);
+
+                String line2Base = dateStr + " " + weekStr + " " + timeStr + " " + ping + "ms to " + serverIP + " " + fps + " FPS";
+                float line2BaseWidth = CustomFontRenderer.getStringWidth(line2Base, contentFont) * scale;
+
+                if (minLine2Width == 0.0f) {
+                    minLine2Width = line2BaseWidth;
+                }
+
+                String currentText = islandText[currentTextIndex];
+
+                float nightskyWidth = CustomFontRenderer.getStringWidth("Epilogue", mainFont);
+                float currentTextWidth = CustomFontRenderer.getStringWidth(currentText, islandTextFont);
+
+                float line1BaseWidth = nightskyWidth + 10;
+                float line1TotalWidth = (line1BaseWidth + currentTextWidth) * scale;
+
+                float requiredWidth = line1TotalWidth + 80 * scale;
+
+                if (currentDisplayWidth == 0.0f) {
+                    currentDisplayWidth = requiredWidth;
+                } else {
+                    float widthDelta = requiredWidth - currentDisplayWidth;
+                    float widthSpeed = 3.5f;
+                    if (Math.abs(widthDelta) > 0.5f) {
+                        currentDisplayWidth += widthDelta * widthSpeed * deltaTime;
+                    } else {
+                        currentDisplayWidth = requiredWidth;
+                    }
+                }
+
+                int mainFontHeight = CustomFontRenderer.getFontHeight(mainFont);
+                int contentFontHeight = CustomFontRenderer.getFontHeight(contentFont);
+                float lineSpacing = 4 * scale;
+
+                targetWidth = currentDisplayWidth + padding * 3.5;
+                targetHeight = (mainFontHeight * scale + contentFontHeight * scale + lineSpacing) + padding * 1.2;
             }
-
-            int mainFontHeight = CustomFontRenderer.getFontHeight(mainFont);
-            int contentFontHeight = CustomFontRenderer.getFontHeight(contentFont);
-            float lineSpacing = 4 * scale;
-
-            targetWidth = currentDisplayWidth + padding * 3.5;
-            targetHeight = (mainFontHeight * scale + contentFontHeight * scale + lineSpacing) + padding * 1.2;
         }
 
         updateAnimations();
@@ -383,10 +390,16 @@ public class DynamicIsland extends Module {
         }
 
         drawDynamicIsland(sr, finalWidth, finalHeight);
-    }
 
-    public boolean shouldHideTabList() {
-        return this.isEnabled() && showingPlayerList;
+        if (embeddedClickGui) {
+            double x = (sr.getScaledWidth() - finalWidth) / 2.0;
+            double y = 8;
+            int clipX = (int) x;
+            int clipY = (int) y;
+            int clipW = (int) finalWidth;
+            int clipH = (int) finalHeight;
+            ((MenuClickGui) mc.currentScreen).setExternalClip(clipX, clipY, clipW, clipH);
+        }
     }
 
     private void updateTextRotation(float deltaTime) {
@@ -559,7 +572,8 @@ public class DynamicIsland extends Module {
         long currentTime = System.currentTimeMillis();
 
         List<Notification> activeNotifications = NotificationManager.getInstance().getActiveNotifications();
-        boolean hasNotifications = !activeNotifications.isEmpty() && showNotifications.getValue();
+        boolean clickGuiOpen = mc.currentScreen instanceof MenuClickGui || mc.currentScreen instanceof DropdownClickGui;
+        boolean hasNotifications = !activeNotifications.isEmpty() && showNotifications.getValue() && !clickGuiOpen;
 
         updateTargetRadius(chestExpanded, hasNotifications);
         if (targetRadius != lastTargetRadius) {
@@ -744,7 +758,8 @@ public class DynamicIsland extends Module {
         }
 
         List<Notification> activeNotifications = NotificationManager.getInstance().getActiveNotifications();
-        boolean hasNotifications = !activeNotifications.isEmpty() && showNotifications.getValue();
+        boolean clickGuiOpen = mc.currentScreen instanceof MenuClickGui || mc.currentScreen instanceof DropdownClickGui;
+        boolean hasNotifications = !activeNotifications.isEmpty() && showNotifications.getValue() && !clickGuiOpen;
         boolean isEnteringNoticeState = hasNotifications && !wasInNoticeState;
 
         float animationDuration = isExpanding ? bounceDuration.getValue() : bounceDuration.getValue() + 50.0f;
@@ -790,7 +805,8 @@ public class DynamicIsland extends Module {
         }
 
         List<Notification> activeNotifications = NotificationManager.getInstance().getActiveNotifications();
-        boolean hasNotifications = !activeNotifications.isEmpty() && showNotifications.getValue();
+        boolean clickGuiOpen = mc.currentScreen instanceof MenuClickGui || mc.currentScreen instanceof DropdownClickGui;
+        boolean hasNotifications = !activeNotifications.isEmpty() && showNotifications.getValue() && !clickGuiOpen;
         boolean isEnteringNoticeState = hasNotifications && !wasInNoticeState;
 
         float animationDuration = isExpanding ? bounceDuration.getValue() : bounceDuration.getValue() + 50.0f;
@@ -830,23 +846,28 @@ public class DynamicIsland extends Module {
         }
 
         List<Notification> activeNotifications = NotificationManager.getInstance().getActiveNotifications();
-        boolean hasNotifications = !activeNotifications.isEmpty() && showNotifications.getValue();
+        boolean clickGuiOpen = mc.currentScreen instanceof MenuClickGui || mc.currentScreen instanceof DropdownClickGui;
+        boolean hasNotifications = !activeNotifications.isEmpty() && showNotifications.getValue() && !clickGuiOpen;
 
         if (!hasNotifications && !chestExpanded && !commandInterface.isActive()) {
             long currentTime = System.currentTimeMillis();
             float intensity = animationMode.getModeString().equals("Custom") ? breathingIntensity.getValue() : 0.03f;
             float speed = animationMode.getModeString().equals("Custom") ? breathingSpeed.getValue() : 3000.0f;
             float breathingCycle = (currentTime - breathingStartTime) / speed;
-            float breathingIntensity = (float) (Math.sin(breathingCycle * Math.PI * 2) * 0.5 + 0.5);
-            float breathingScale = 1.0f + breathingIntensity * intensity;
+            float breathingWave = (float) (Math.sin(breathingCycle * Math.PI * 2) * 0.5 + 0.5);
+            breathingWave = breathingWave * breathingWave * (3.0f - 2.0f * breathingWave);
+            float intensityMul = clickGuiOpen ? 0.35f : 1.0f;
+            float breathingScale = 1.0f + breathingWave * intensity * intensityMul;
             return currentWidth * breathingScale;
         } else if (commandInterface.isActive() && commandInterface.isShowingKeyboard()) {
             long currentTime = System.currentTimeMillis();
             float intensity = animationMode.getModeString().equals("Custom") ? breathingIntensity.getValue() * 0.3f : 0.01f;
             float speed = animationMode.getModeString().equals("Custom") ? breathingSpeed.getValue() : 3000.0f;
             float breathingCycle = (currentTime - breathingStartTime) / speed;
-            float breathingIntensity = (float) (Math.sin(breathingCycle * Math.PI * 2) * 0.5 + 0.5);
-            float breathingScale = 1.0f + breathingIntensity * intensity;
+            float breathingWave = (float) (Math.sin(breathingCycle * Math.PI * 2) * 0.5 + 0.5);
+            breathingWave = breathingWave * breathingWave * (3.0f - 2.0f * breathingWave);
+            float intensityMul = clickGuiOpen ? 0.35f : 1.0f;
+            float breathingScale = 1.0f + breathingWave * intensity * intensityMul;
             return currentWidth * breathingScale;
         }
         return currentWidth;
@@ -858,23 +879,28 @@ public class DynamicIsland extends Module {
         }
 
         List<Notification> activeNotifications = NotificationManager.getInstance().getActiveNotifications();
-        boolean hasNotifications = !activeNotifications.isEmpty() && showNotifications.getValue();
+        boolean clickGuiOpen = mc.currentScreen instanceof MenuClickGui || mc.currentScreen instanceof DropdownClickGui;
+        boolean hasNotifications = !activeNotifications.isEmpty() && showNotifications.getValue() && !clickGuiOpen;
 
         if (!hasNotifications && !chestExpanded && !commandInterface.isActive()) {
             long currentTime = System.currentTimeMillis();
             float intensity = animationMode.getModeString().equals("Custom") ? breathingIntensity.getValue() : 0.03f;
             float speed = animationMode.getModeString().equals("Custom") ? breathingSpeed.getValue() : 3000.0f;
             float breathingCycle = (currentTime - breathingStartTime) / speed;
-            float breathingIntensity = (float) (Math.sin(breathingCycle * Math.PI * 2) * 0.5 + 0.5);
-            float breathingScale = 1.0f + breathingIntensity * intensity;
+            float breathingWave = (float) (Math.sin(breathingCycle * Math.PI * 2) * 0.5 + 0.5);
+            breathingWave = breathingWave * breathingWave * (3.0f - 2.0f * breathingWave);
+            float intensityMul = clickGuiOpen ? 0.35f : 1.0f;
+            float breathingScale = 1.0f + breathingWave * intensity * intensityMul;
             return currentHeight * breathingScale;
         } else if (commandInterface.isActive() && commandInterface.isShowingKeyboard()) {
             long currentTime = System.currentTimeMillis();
             float intensity = animationMode.getModeString().equals("Custom") ? breathingIntensity.getValue() * 0.3f : 0.01f;
             float speed = animationMode.getModeString().equals("Custom") ? breathingSpeed.getValue() : 3000.0f;
             float breathingCycle = (currentTime - breathingStartTime) / speed;
-            float breathingIntensity = (float) (Math.sin(breathingCycle * Math.PI * 2) * 0.5 + 0.5);
-            float breathingScale = 1.0f + breathingIntensity * intensity;
+            float breathingWave = (float) (Math.sin(breathingCycle * Math.PI * 2) * 0.5 + 0.5);
+            breathingWave = breathingWave * breathingWave * (3.0f - 2.0f * breathingWave);
+            float intensityMul = clickGuiOpen ? 0.35f : 1.0f;
+            float breathingScale = 1.0f + breathingWave * intensity * intensityMul;
             return currentHeight * breathingScale;
         }
         return currentHeight;
@@ -893,13 +919,16 @@ public class DynamicIsland extends Module {
         GL11.glEnable(GL11.GL_LINE_SMOOTH);
         GL11.glHint(GL11.GL_LINE_SMOOTH_HINT, GL11.GL_NICEST);
 
+        boolean embeddedClickGui = mc.currentScreen instanceof MenuClickGui && ((MenuClickGui) mc.currentScreen).isEmbeddedInDynamicIsland();
+
         float finalRadius = radius;
         PostProcessing.drawBlur((float) x, (float) y, (float) (x + width), (float) (y + height), () -> () -> epilogue.util.render.RenderUtil.drawRoundedRect((float) x, (float) y, (float) width, (float) height, finalRadius, -1));
 
         epilogue.util.render.RenderUtil.drawRoundedRect((float) x, (float) y, (float) width, (float) height, radius, new Color(0, 0, 0, bgAlpha.getValue()));
 
         List<Notification> activeNotifications = NotificationManager.getInstance().getActiveNotifications();
-        boolean hasNotifications = !activeNotifications.isEmpty() && showNotifications.getValue();
+        boolean clickGuiOpen = mc.currentScreen instanceof MenuClickGui || mc.currentScreen instanceof DropdownClickGui;
+        boolean hasNotifications = !activeNotifications.isEmpty() && showNotifications.getValue() && !clickGuiOpen;
 
         if (chestExpanded) {
             radius = 12.0f;
@@ -1453,53 +1482,7 @@ public class DynamicIsland extends Module {
     private void drawNightSkyTitle(float x, float y, Font cheriFont) {
         CustomFontRenderer.drawStringWithShadow("Epilogue", x, y, 0xFFFFFF, cheriFont);
     }
-    
-    private void drawDropShadowBackground(float x, float y, float width, float height, float cornerRadius) {
-        float radius = shadowRadius;
-        float spread = shadowSpread;
-        float alphaMultiplier = shadowAlpha;
-        
-        if (radius <= 0 || alphaMultiplier <= 0) return;
-        
-        
-        GlStateManager.pushMatrix();
-        GlStateManager.enableBlend();
-        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
-        GlStateManager.disableTexture2D();
-        
-        float spreadDistance = radius * spread;
-        float blurDistance = radius - spreadDistance;
-        
-        int samples = Math.max(8, Math.min(20, (int)(radius * 1.5f)));
-        
-        for (int i = 0; i < samples; i++) {
-            float t = (float)i / (float)(samples - 1);
-            
-            float currentSpread = t * spreadDistance;
-            float currentBlur = t * blurDistance;
-            float totalOffset = currentSpread + currentBlur;
-            
-            float alpha;
-            if (t <= spread) {
-                alpha = 0.5f * alphaMultiplier;
-            } else {
-                float blurProgress = (t - spread) / (1.0f - spread);
-                alpha = 0.5f * alphaMultiplier * (1.0f - blurProgress);
-            }
-            
-            float shadowX = x - totalOffset;
-            float shadowY = y - totalOffset;
-            float shadowWidth = width + totalOffset * 2.0f;
-            float shadowHeight = height + totalOffset * 2.0f;
-            
-            drawGaussianBlurredRect(shadowX, shadowY, shadowWidth, shadowHeight, cornerRadius, alpha);
-        }
-        
-        GlStateManager.enableTexture2D();
-        GlStateManager.disableBlend();
-        GlStateManager.popMatrix();
-    }
-    
+
     private void drawGaussianBlurredRect(float x, float y, float width, float height, float cornerRadius, float alpha) {
         int blurLayers = 3;
         float blurSpread = 2.0f;

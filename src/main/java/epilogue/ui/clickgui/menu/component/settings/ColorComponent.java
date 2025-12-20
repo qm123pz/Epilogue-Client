@@ -34,6 +34,9 @@ public class ColorComponent extends SettingComponent<ColorValue> {
 
     @Override
     public void draw(int mouseX, int mouseY) {
+        if (alpha <= 0.0f) {
+            return;
+        }
         open.setDirection(opened ? Direction.FORWARDS : Direction.BACKWARDS);
         this.height = (float) (24 + 66 * open.getOutput());
 
@@ -41,7 +44,7 @@ public class ColorComponent extends SettingComponent<ColorValue> {
         DrawUtil.drawCircle(x + 149, y + 7, 0, 360, 5, 2, true, setting.getValue());
         DrawUtil.resetColor();
 
-        Fonts.draw(Fonts.small(), setting.getName(), x + 10, y + 4, ColorUtil.applyOpacity(0xFFFFFFFF, 0.4f));
+        Fonts.draw(Fonts.small(), setting.getName(), x + 10, y + 4, ColorUtil.applyOpacity(0xFFFFFFFF, 0.4f * alpha));
 
         if (open.getOutput() > 0) {
             float gradientWidth = 60;
@@ -56,7 +59,7 @@ public class ColorComponent extends SettingComponent<ColorValue> {
             for (float i = 0; i <= 60 * open.getOutput(); i++) {
                 RenderUtil.drawRect(x + 21, y + 18 + i, 8, 1, Color.getHSBColor((float) (i / 60f * open.getOutput()), 1f, 1f).getRGB());
             }
-            RenderUtil.drawRect(x + 20, (float) (y + 18 + h * 60 * open.getOutput()), 10, 1, 0xFFFFFFFF);
+            RenderUtil.drawRect(x + 20, (float) (y + 18 + h * 60 * open.getOutput()), 10, 1, ColorUtil.applyOpacity(0xFFFFFFFF, alpha));
 
             float pickerY = (gradientY + 2) + (gradientHeight * (1 - b));
             float pickerX = (gradientX) + (gradientWidth * s - 1);
@@ -79,7 +82,7 @@ public class ColorComponent extends SettingComponent<ColorValue> {
                 }
             }
 
-            DrawUtil.drawCircle((int) pickerX, (int) pickerY, 0, 360, 2, .1f, false, setting.getValue());
+            DrawUtil.drawCircle((int) pickerX, (int) pickerY, 0, 360, 2, .1f, false, ColorUtil.applyOpacity(new java.awt.Color(setting.getValue()), alpha).getRGB());
         }
     }
 

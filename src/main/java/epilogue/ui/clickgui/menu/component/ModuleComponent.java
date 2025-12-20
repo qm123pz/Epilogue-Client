@@ -44,22 +44,29 @@ public class ModuleComponent {
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         float yy = y + 6 + scroll;
 
+        float guiAlpha = gui.getTextAlpha();
+
         enabled.setDirection(module.isEnabled() ? Direction.FORWARDS : Direction.BACKWARDS);
         hover.setDirection(DrawUtil.isHovering(x + 135, yy + 4, 22, 12, mouseX, mouseY) ? Direction.FORWARDS : Direction.BACKWARDS);
 
         Animation moduleAnimation = module.getAnimation();
         moduleAnimation.setDirection(module.isEnabled() ? Direction.FORWARDS : Direction.BACKWARDS);
 
-        RenderUtil.drawRect(x, yy, 165, height, gui.backgroundColor.getRGB());
-        Fonts.draw(Fonts.small(), module.getName(), x + 10, yy + 5, ColorUtil.applyOpacity(0xFFFFFFFF, 1f));
+        if (guiAlpha > 0.0f) {
+            Fonts.draw(Fonts.small(), module.getName(), x + 10, yy + 5, ColorUtil.applyOpacity(0xFFFFFFFF, guiAlpha));
+        }
 
-        int track = module.isEnabled() ? ColorUtil.applyOpacity(0xFFFFFFFF, 0.22f) : ColorUtil.applyOpacity(0xFFFFFFFF, 0.12f);
-        RenderUtil.drawRect(x + 135, yy + 4, 20, 10, track);
-        DrawUtil.drawCircleCGUI(x + 141 + (float) (moduleAnimation.getOutput() * 9f), yy + 9, 8, 0xFFFFFFFF);
+        int track = module.isEnabled() ? ColorUtil.applyOpacity(0xFFFFFFFF, 0.22f * guiAlpha) : ColorUtil.applyOpacity(0xFFFFFFFF, 0.12f * guiAlpha);
+        if (guiAlpha > 0.0f) {
+            RenderUtil.drawRect(x + 135, yy + 4, 20, 10, track);
+            DrawUtil.drawCircleCGUI(x + 141 + (float) (moduleAnimation.getOutput() * 9f), yy + 9, 8, ColorUtil.applyOpacity(0xFFFFFFFF, guiAlpha));
+        }
 
         float componentY = yy + 22;
         for (SettingComponent<?> setting : settings) {
             if (!setting.getSetting().isVisible()) continue;
+
+            setting.setAlpha(guiAlpha);
 
             setting.updateBounds(x, componentY, 165);
             setting.draw(mouseX, mouseY);

@@ -24,7 +24,7 @@ import java.util.List;
 public class MenuClickGui extends GuiScreen {
 
     private final List<CategoryPanel> categoryPanels = new ArrayList<>();
-    private final Animation openAnimation = new DecelerateAnimation(250, 1);
+    public final Animation openAnimation = new DecelerateAnimation(250, 1);
     private boolean firstOpen = true;
     public int x;
     public int y;
@@ -33,6 +33,37 @@ public class MenuClickGui extends GuiScreen {
     private int dragX;
     private int dragY;
     private boolean dragging;
+
+    private boolean embeddedInDynamicIsland = false;
+    private int clipX;
+    private int clipY;
+    private int clipW;
+    private int clipH;
+    private boolean useExternalClip = false;
+
+    private long textFadeStartMs = -1L;
+    private float textAlpha = 0.0f;
+
+    public float getTextAlpha() {
+        return textAlpha;
+    }
+
+    public void setEmbeddedInDynamicIsland(boolean embeddedInDynamicIsland) {
+        this.embeddedInDynamicIsland = embeddedInDynamicIsland;
+        this.useExternalClip = false;
+    }
+
+    public boolean isEmbeddedInDynamicIsland() {
+        return embeddedInDynamicIsland;
+    }
+
+    public void setExternalClip(int x, int y, int w, int h) {
+        this.clipX = x;
+        this.clipY = y;
+        this.clipW = w;
+        this.clipH = h;
+        this.useExternalClip = true;
+    }
 
     public Color backgroundColor;
     public Color backgroundColor2;
@@ -76,6 +107,15 @@ public class MenuClickGui extends GuiScreen {
 
     @Override
     public void initGui() {
+        if (embeddedInDynamicIsland) {
+            ScaledResolution sr = new ScaledResolution(mc);
+            this.x = (sr.getScaledWidth() - this.w) / 2;
+            this.y = 16;
+        }
+
+        textFadeStartMs = -1L;
+        textAlpha = 0.0f;
+
         for (CategoryPanel panel : categoryPanels) {
             panel.initGui();
         }
@@ -91,12 +131,14 @@ public class MenuClickGui extends GuiScreen {
     @Override
     public void onGuiClosed() {
         openAnimation.setDirection(Direction.BACKWARDS);
+        textFadeStartMs = -1L;
+        textAlpha = 0.0f;
     }
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
 
-        if (dragging) {
+        if (!embeddedInDynamicIsland && dragging) {
             x = mouseX + dragX;
             y = mouseY + dragY;
         }
@@ -104,31 +146,63 @@ public class MenuClickGui extends GuiScreen {
         ScaledResolution sr = new ScaledResolution(mc);
         double anim = openAnimation.getOutput();
         float fade = (float) anim;
+
+        boolean expanded = fade >= 0.999f;
+        if (!expanded) {
+            textFadeStartMs = -1L;
+            textAlpha = 0.0f;
+        } else {
+            if (textFadeStartMs < 0L) {
+                textFadeStartMs = System.currentTimeMillis();
+                textAlpha = 0.0f;
+            } else {
+                float durationMs = 160.0f;
+                float t = (System.currentTimeMillis() - textFadeStartMs) / durationMs;
+                if (t < 0.0f) t = 0.0f;
+                if (t > 1.0f) t = 1.0f;
+                textAlpha = t;
+            }
+        }
+
+        boolean drawText = textAlpha > 0.0f;
         float sw = sr.getScaledWidth();
         float sh = sr.getScaledHeight();
-        if (fade > 0) {
+        if (!embeddedInDynamicIsland && fade > 0) {
             epilogue.module.modules.render.PostProcessing.getBlurStrength();
             PostProcessing.drawBlur(0, 0, sw, sh, () -> () -> net.minecraft.client.gui.Gui.drawRect(0, 0, (int) sw, (int) sh, -1));
+
             int alpha = (int) (120 * fade);
             RenderUtil.drawRect(0, 0, sw, sh, new Color(0, 0, 0, alpha).getRGB());
         }
 
-        RenderUtil.scissorStart(x, y + 35, w, h - 35);
-        RenderUtil.drawRect(x, y + 35, w, h - 35, backgroundColor2.getRGB());
-        RenderUtil.scissorEnd();
+        if (!embeddedInDynamicIsland) {
+            RenderUtil.scissorStart(x, y + 35, w, h - 35);
+            RenderUtil.drawRect(x, y + 35, w, h - 35, backgroundColor2.getRGB());
+            RenderUtil.scissorEnd();
+        }
 
-        String name = Epilogue.clientName == null ? "Epilogue" : Epilogue.clientName.trim();
-        if (name.isEmpty()) name = "Epilogue";
+        if (useExternalClip) {
+            RenderUtil.scissorStart(clipX, clipY, clipW, clipH);
+        }
 
-        String firstLetter = name.substring(0, 1);
-        String remainingText = name.substring(1);
-        int firstLetterWidth = Fonts.width(Fonts.heading(), firstLetter);
+        if (!embeddedInDynamicIsland) {
+            String name = Epilogue.clientName == null ? "Epilogue" : Epilogue.clientName.trim();
+            if (name.isEmpty()) name = "Epilogue";
 
-        Fonts.draw(Fonts.heading(), firstLetter, x + 10, y + 10, ColorUtil.applyOpacity(fontcolor.getRGB(), 1f));
-        Fonts.draw(Fonts.heading(), remainingText, x + 10 + firstLetterWidth, y + 10, fontcolor.getRGB());
+            String firstLetter = name.substring(0, 1);
+            String remainingText = name.substring(1);
+            int firstLetterWidth = Fonts.width(Fonts.heading(), firstLetter);
 
-        String ver = Epilogue.clientVersion == null ? "" : Epilogue.clientVersion;
-        Fonts.draw(Fonts.small(), ver, x + w - 32, y + 16, ColorUtil.applyOpacity(versionColor.getRGB(), 1f));
+            if (drawText) {
+                Fonts.draw(Fonts.heading(), firstLetter, x + 10, y + 10, ColorUtil.applyOpacity(fontcolor.getRGB(), textAlpha));
+                Fonts.draw(Fonts.heading(), remainingText, x + 10 + firstLetterWidth, y + 10, ColorUtil.applyOpacity(fontcolor.getRGB(), textAlpha));
+            }
+
+            String ver = Epilogue.clientVersion == null ? "" : Epilogue.clientVersion;
+            if (drawText) {
+                Fonts.draw(Fonts.small(), ver, x + w - 32, y + 16, ColorUtil.applyOpacity(versionColor.getRGB(), textAlpha));
+            }
+        }
 
         int fps = net.minecraft.client.Minecraft.getDebugFPS();
         int ping = 0;
@@ -145,8 +219,12 @@ public class MenuClickGui extends GuiScreen {
         String infoText = "FPS " + fps + "  Ping " + ping + "  UserName: " + mc.getSession().getUsername() + "  HP: " + mc.thePlayer.getHealth();
         float infoX = x + 10;
         float infoY = y + 44;
-        RenderUtil.drawRect(infoX, infoY, 182, 14, smallbackgroundColor.getRGB());
-        Fonts.draw(Fonts.tiny(), infoText, infoX + 6, infoY + 5, ColorUtil.applyOpacity(fontcolor.getRGB(), 1f));
+        if (!embeddedInDynamicIsland) {
+            RenderUtil.drawRect(infoX, infoY, 182, 14, smallbackgroundColor.getRGB());
+        }
+        if (drawText) {
+            Fonts.draw(Fonts.tiny(), infoText, infoX + 6, infoY + 5, ColorUtil.applyOpacity(fontcolor.getRGB(), textAlpha));
+        }
 
         Color rectColor = smallbackgroundColor2;
         rectColor = ColorUtil.interpolateColorC(rectColor, ColorUtil.brighter(rectColor, 0.6f), (float) hoverAnimation.getOutput());
@@ -163,31 +241,43 @@ public class MenuClickGui extends GuiScreen {
             hoverAnimation.setDirection(hovered ? Direction.FORWARDS : Direction.BACKWARDS);
             categoryPanel.drawScreen(mouseX, mouseY, partialTicks);
             if (categoryPanel.isSelected()) {
-                RenderUtil.drawRect(categoryPanel.getIconX(), categoryPanel.getIconY(), 15, 15, rectColor.brighter().getRGB());
-                Fonts.draw(Fonts.icon(), categoryPanel.getIconChar(), categoryPanel.getIconTextX(), categoryPanel.getIconTextY(), ColorUtil.applyOpacity(fontcolor.getRGB(), 1f));
+                if (!embeddedInDynamicIsland) {
+                    RenderUtil.drawRect(categoryPanel.getIconX(), categoryPanel.getIconY(), 15, 15, rectColor.brighter().getRGB());
+                }
+                if (drawText) {
+                    Fonts.draw(Fonts.icon(), categoryPanel.getIconChar(), categoryPanel.getIconTextX(), categoryPanel.getIconTextY(), ColorUtil.applyOpacity(fontcolor.getRGB(), textAlpha));
+                }
             } else {
-                Fonts.draw(Fonts.icon(), categoryPanel.getIconChar(), categoryPanel.getIconTextX(), categoryPanel.getIconTextY(), versionColor.getRGB());
+                if (drawText) {
+                    Fonts.draw(Fonts.icon(), categoryPanel.getIconChar(), categoryPanel.getIconTextX(), categoryPanel.getIconTextY(), ColorUtil.applyOpacity(versionColor.getRGB(), textAlpha));
+                }
             }
         }
 
-        Framebuffer bloomBuffer = PostProcessing.beginBloom();
-        if (bloomBuffer != null) {
-            bloomBuffer.bindFramebuffer(false);
-            GlStateManager.disableTexture2D();
-            GlStateManager.enableBlend();
-            GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
-            RenderUtil.drawRect(x, y, w, h, new Color(0, 0, 0, 255).getRGB());
-            GlStateManager.disableBlend();
-            GlStateManager.enableTexture2D();
+        if (useExternalClip) {
+            RenderUtil.scissorEnd();
+        }
 
-            mc.getFramebuffer().bindFramebuffer(false);
-            BloomShader.renderBloom(bloomBuffer.framebufferTexture, 2, 1);
+        if (!embeddedInDynamicIsland) {
+            Framebuffer bloomBuffer = PostProcessing.beginBloom();
+            if (bloomBuffer != null) {
+                bloomBuffer.bindFramebuffer(false);
+                GlStateManager.disableTexture2D();
+                GlStateManager.enableBlend();
+                GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+                RenderUtil.drawRect(x, y, w, h, new Color(0, 0, 0, 255).getRGB());
+                GlStateManager.disableBlend();
+                GlStateManager.enableTexture2D();
+
+                mc.getFramebuffer().bindFramebuffer(false);
+                BloomShader.renderBloom(bloomBuffer.framebufferTexture, 2, 1);
+            }
         }
     }
 
     @Override
-    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
-        if (isHover(x, y, 100, 35, mouseX, mouseY)) {
+    public void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
+        if (!embeddedInDynamicIsland && isHover(x, y, 100, 35, mouseX, mouseY)) {
             dragging = true;
             dragX = x - mouseX;
             dragY = y - mouseY;
@@ -210,7 +300,7 @@ public class MenuClickGui extends GuiScreen {
     }
 
     @Override
-    protected void keyTyped(char typedChar, int keyCode) throws IOException {
+    public void keyTyped(char typedChar, int keyCode) throws IOException {
         CategoryPanel selected = getSelected();
         if (selected != null) {
             selected.keyTyped(typedChar, keyCode);
@@ -219,7 +309,7 @@ public class MenuClickGui extends GuiScreen {
     }
 
     @Override
-    protected void mouseReleased(int mouseX, int mouseY, int state) {
+    public void mouseReleased(int mouseX, int mouseY, int state) {
         if (state == 0) {
             dragging = false;
         }

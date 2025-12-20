@@ -17,24 +17,6 @@ public abstract class SettingComponent<T extends Value<?>> extends Component {
         return setting;
     }
 
-    protected void applyValueChange(Object value) {
-        if (value == null) {
-            setting.parseString(null);
-            return;
-        }
-        boolean changed = false;
-        try {
-            changed = setting.parseString(String.valueOf(value));
-        } catch (Exception ignored) {
-        }
-        if (!changed) {
-            try {
-                setting.setValue(value);
-            } catch (Exception ignored) {
-            }
-        }
-    }
-
     public void setAlpha(float alpha) {
         this.alpha = alpha;
     }
@@ -48,9 +30,6 @@ public abstract class SettingComponent<T extends Value<?>> extends Component {
     public abstract void mouseReleased(int mouseX, int mouseY, int state);
 
     public abstract void keyTyped(char typedChar, int keyCode);
-
-    public void tick() {
-    }
 
     public float getDisplayHeight() {
         return height;

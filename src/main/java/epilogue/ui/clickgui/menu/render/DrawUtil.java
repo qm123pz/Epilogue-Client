@@ -9,8 +9,6 @@ import java.awt.*;
 import static org.lwjgl.opengl.GL11.*;
 
 public final class DrawUtil {
-    private DrawUtil() {
-    }
 
     public static boolean isHovering(float x, float y, float w, float h, float mouseX, float mouseY) {
         return mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;

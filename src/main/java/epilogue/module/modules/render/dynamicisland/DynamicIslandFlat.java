@@ -15,6 +15,7 @@ import epilogue.module.modules.player.Scaffold;
 import epilogue.module.modules.render.dynamicisland.notification.Notification;
 import epilogue.module.modules.render.dynamicisland.notification.NotificationManager;
 import epilogue.module.modules.render.dynamicisland.notification.ScaffoldData;
+import epilogue.ui.clickgui.menu.MenuClickGui;
 import epilogue.util.render.PostProcessing;
 import epilogue.util.render.RoundedUtil;
 import epilogue.util.render.RenderUtil;
@@ -51,6 +52,9 @@ public class DynamicIslandFlat {
 
     private float splitMix = 1.0f;
 
+    private boolean clickGuiInited = false;
+    private float clickGuiMix = 0.0f;
+
     public DynamicIslandFlat() {
     }
 
@@ -63,6 +67,16 @@ public class DynamicIslandFlat {
         }
 
         ScaledResolution sr = new ScaledResolution(mc);
+
+        boolean embeddedClickGui = mc.currentScreen instanceof MenuClickGui && ((MenuClickGui) mc.currentScreen).isEmbeddedInDynamicIsland();
+        float targetClickGui = 0.0f;
+        if (embeddedClickGui) {
+            try {
+                targetClickGui = (float) ((MenuClickGui) mc.currentScreen).openAnimation.getOutput();
+            } catch (Exception ignored) {
+                targetClickGui = 1.0f;
+            }
+        }
 
         FontTransformer transformer = FontTransformer.getInstance();
         Font font = transformer.getFont("MicrosoftYaHei", 38);
@@ -102,7 +116,17 @@ public class DynamicIslandFlat {
         }
         lastFrameMs = nowMs;
 
-        if (!latchedToggleActive) {
+        float kClick = 18.0f;
+        float aClick = 1.0f - (float) Math.exp(-kClick * dt);
+        if (!clickGuiInited) {
+            clickGuiInited = true;
+            clickGuiMix = targetClickGui;
+        }
+        clickGuiMix += (targetClickGui - clickGuiMix) * aClick;
+        if (clickGuiMix < 0.001f) clickGuiMix = 0.0f;
+        if (clickGuiMix > 0.999f) clickGuiMix = 1.0f;
+
+        if (clickGuiMix <= 0.0f && !latchedToggleActive) {
             if (currentIsToggle) {
                 latchedToggleActive = true;
                 latchedToggleStart = current.getTimestamp();
@@ -110,7 +134,7 @@ public class DynamicIslandFlat {
                 latchedEnabled = current.getType() == Notification.NotificationType.MODULE_ENABLED;
                 lastLatchSwitchMs = nowMs;
             }
-        } else {
+        } else if (clickGuiMix <= 0.0f) {
             if (nowMs - latchedToggleStart > 1700L) {
                 latchedToggleActive = false;
             } else if (currentIsToggle && current.getTimestamp() != latchedToggleStart) {
@@ -123,7 +147,7 @@ public class DynamicIslandFlat {
             }
         }
 
-        boolean showToggle = !scaffoldActive && latchedToggleActive;
+        boolean showToggle = clickGuiMix <= 0.0f && !scaffoldActive && latchedToggleActive;
 
         String middleTextClient = Epilogue.clientName + Epilogue.clientVersion;
 
@@ -166,7 +190,7 @@ public class DynamicIslandFlat {
         float x1 = centerX - sideSpacingFromCenter - w1;
         float x3 = centerX + sideSpacingFromCenter;
 
-        float targetScaffold = scaffoldActive ? 1.0f : 0.0f;
+        float targetScaffold = (clickGuiMix > 0.0f) ? 0.0f : (scaffoldActive ? 1.0f : 0.0f);
         float kScaffold = 10.0f;
         float aScaffold = 1.0f - (float) Math.exp(-kScaffold * dt);
         scaffoldMix += (targetScaffold - scaffoldMix) * aScaffold;
@@ -206,6 +230,32 @@ public class DynamicIslandFlat {
             targetLeftEdge = bgX2;
             targetRightEdge = bgX2 + bgW2;
         }
+
+        MenuClickGui clickGui = embeddedClickGui ? (MenuClickGui) mc.currentScreen : null;
+        float clickGuiW = clickGui != null ? clickGui.w : 0.0f;
+        float clickGuiH = clickGui != null ? clickGui.h : 0.0f;
+        float clickPadX = 18.0f;
+        float clickPadY = 18.0f;
+        float clickTargetW = clickGuiW + clickPadX * 2f;
+        float clickTargetH = clickGuiH + clickPadY * 2f;
+        float mergeExtraX = 34.0f;
+
+        float clickLeft = centerX - clickTargetW / 2f;
+        float clickRight = centerX + clickTargetW / 2f;
+
+        float mergeEnd = 0.55f;
+        float mergePhase = Math.min(1.0f, clickGuiMix / mergeEnd);
+        float expandPhase = clickGuiMix <= mergeEnd ? 0.0f : Math.min(1.0f, (clickGuiMix - mergeEnd) / (1.0f - mergeEnd));
+
+        float mergeL = x1 + (centerX - x1) * mergePhase;
+        float mergeR = (x3 + w3) + (centerX - (x3 + w3)) * mergePhase;
+        float finalL = (mergeL) + ((clickLeft - mergeExtraX) - mergeL) * expandPhase;
+        float finalR = (mergeR) + ((clickRight + mergeExtraX) - mergeR) * expandPhase;
+
+        if (clickGuiMix > 0.0f) {
+            targetLeftEdge = targetLeftEdge + (finalL - targetLeftEdge) * clickGuiMix;
+            targetRightEdge = targetRightEdge + (finalR - targetRightEdge) * clickGuiMix;
+        }
         if (!mergeInited) {
             mergeInited = true;
             mergeLeftEdge = targetLeftEdge;
@@ -220,10 +270,15 @@ public class DynamicIslandFlat {
         float mergeW = Math.max(1f, mergeRightEdge - mergeLeftEdge);
         float mergeRadius = radius + scaffoldMix;
 
+        float clickDown = clickTargetH - h;
+        if (clickDown < 0.0f) clickDown = 0.0f;
+        float downH = h + clickDown * expandPhase;
+        float downRadius = mergeRadius;
+
         Framebuffer bloomBuffer = PostProcessing.beginBloom();
         if (bloomBuffer != null) {
-            if (splitMix < 0.999f) {
-                RenderUtil.drawRoundedRect(mergeX, y, mergeW, h, mergeRadius, bloomColor);
+            if (splitMix < 0.999f || clickGuiMix > 0.001f) {
+                RenderUtil.drawRoundedRect(mergeX, y, mergeW, downH, downRadius, bloomColor);
             }
             if (splitMix > 0.001f) {
                 RenderUtil.drawRoundedRect(x1, y, w1, h, radius, bloomColor);
@@ -233,11 +288,13 @@ public class DynamicIslandFlat {
             mc.getFramebuffer().bindFramebuffer(false);
         }
 
-        if (splitMix < 0.999f) {
+        if (splitMix < 0.999f || clickGuiMix > 0.001f) {
             int a = (int) (40 * (1.0f - splitMix));
+            if (a < 0) a = 0;
+            if (a > 120) a = 120;
             Color bgA = new Color(0, 0, 0, a);
-            PostProcessing.drawBlur(mergeX, y, mergeX + mergeW, y + h, () -> () -> RenderUtil.drawRoundedRect(mergeX, y, mergeW, h, mergeRadius, -1));
-            RenderUtil.drawRoundedRect(mergeX, y, mergeW, h, mergeRadius, bgA);
+            PostProcessing.drawBlur(mergeX, y, mergeX + mergeW, y + downH, () -> () -> RenderUtil.drawRoundedRect(mergeX, y, mergeW, downH, downRadius, -1));
+            RenderUtil.drawRoundedRect(mergeX, y, mergeW, downH, downRadius, bgA);
         }
 
         if (splitMix > 0.001f) {
@@ -259,7 +316,7 @@ public class DynamicIslandFlat {
         GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
         GlStateManager.enableBlend();
         GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
-        float normalTextAlpha = 1.0f - scaffoldMix;
+        float normalTextAlpha = (1.0f - scaffoldMix);
         int whiteNormal = new Color(255, 255, 255, (int) (255 * normalTextAlpha)).getRGB();
         float timeTextX = x1 + paddingX;
         float fpsTextX = x3 + paddingX;
@@ -397,6 +454,14 @@ public class DynamicIslandFlat {
                 RoundedUtil.drawGradientHorizontal(barLeft, barY, barW, barH, 0f, lc, rc);
                 RenderUtil.scissorEnd();
             }
+        }
+
+        if (embeddedClickGui) {
+            float clipX = mergeX;
+            float clipY = y;
+            float clipW = mergeW;
+            float clipH = downH;
+            ((MenuClickGui) mc.currentScreen).setExternalClip((int) clipX, (int) clipY, (int) clipW, (int) clipH);
         }
     }
 }
