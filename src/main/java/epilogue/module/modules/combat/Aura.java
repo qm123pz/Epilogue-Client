@@ -284,7 +284,7 @@ public class Aura extends Module {
         this.rotations = new ModeValue("Rotation Mode", 2, new String[]{"NONE", "Manual", "Silent", "LockView"});
         this.fov = new IntValue("FOV", 360, 30, 360);
         this.autoBlock = new ModeValue(
-                "AutoBlock Mode", 10, new String[]{"NONE", "Vanilla", "Fake", "HypixelA", "HypixelB"}
+                "AutoBlock Mode", 4, new String[]{"NONE", "Vanilla", "Fake", "HypixelA", "HypixelB"}
         );
         this.autoBlockRequirePress = new BooleanValue("AutoBlock Only Right Click", false, () -> this.mode.equals("NONE") || this.mode.equals("Fake"));
         this.autoBlockCPS = new FloatValue("AutoBlock CPS", 10.0F, 1.0F, 10.0F);
@@ -370,7 +370,7 @@ public class Aura extends Module {
                 boolean blocked = false;
                 if (block) {
                     switch (this.autoBlock.getValue()) {
-                        case 0:
+                        case 0: {
                             if (PlayerUtil.isUsingItem()) {
                                 this.isBlocking = true;
                                 if (!this.isPlayerBlocking() && !Epilogue.playerStateManager.digging && !Epilogue.playerStateManager.placing) {
@@ -385,7 +385,8 @@ public class Aura extends Module {
                             Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
                             this.fakeBlockState = false;
                             break;
-                        case 1:
+                    }
+                        case 1: {
                             if (this.hasValidTarget()) {
                                 if (!this.isPlayerBlocking() && !Epilogue.playerStateManager.digging && !Epilogue.playerStateManager.placing) {
                                     swap = true;
@@ -399,7 +400,8 @@ public class Aura extends Module {
                                 this.fakeBlockState = false;
                             }
                             break;
-                        case 2:
+                        }
+                        case 2: {
                             Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
                             this.isBlocking = false;
                             this.fakeBlockState = this.hasValidTarget();
@@ -410,12 +412,14 @@ public class Aura extends Module {
                                 swap = true;
                             }
                             break;
-                        case 3:
+                        }
+                        case 3: {
                             if (this.hasValidTarget()) {
                                 if (!Epilogue.playerStateManager.digging && !Epilogue.playerStateManager.placing) {
                                     switch (this.blockTick) {
                                         case 0: {
-                                            if (!this.isPlayerBlocking() && !Epilogue.playerStateManager.digging && !Epilogue.playerStateManager.placing) {
+                                            this.setCurrentSlot();
+                                            if (!this.isPlayerBlocking()) {
                                                 swap = true;
                                             }
                                             blocked = true;
@@ -424,43 +428,37 @@ public class Aura extends Module {
                                         }
                                         case 1: {
                                             if (this.isPlayerBlocking()) {
-                                                NoSlow noSlow = (NoSlow) Epilogue.moduleManager.getModule(String.valueOf(NoSlow.class));
-                                                if (noSlow != null && noSlow.isEnabled()) {
-                                                    int currentSlot = mc.thePlayer.inventory.currentItem;
-                                                    int randomSlot;
-                                                    do {
-                                                        randomSlot = RandomUtil.nextInt(0, 8);
-                                                    } while (randomSlot == currentSlot);
-
-                                                    PacketUtil.sendPacket(new C09PacketHeldItemChange(randomSlot));
-                                                    PacketUtil.sendPacket(new C09PacketHeldItemChange(currentSlot));
-                                                }
                                                 this.stopBlock();
-                                                attack = false;
                                             }
-                                            if (this.attackDelayMS <= 50L) {
-                                                this.blockTick = 0;
-                                            }
+                                            attack = false;
+                                            int emptySlot = this.findEmptySlot(Aura.mc.thePlayer.inventory.currentItem);
+                                            PacketUtil.sendPacket(new C09PacketHeldItemChange(emptySlot));
+                                            this.swapped = true;
+                                            if (this.attackDelayMS > 50L) break;
+                                            this.blockTick = 0;
                                             break;
                                         }
                                         default: {
                                             this.blockTick = 0;
+                                            this.setCurrentSlot();
                                         }
                                     }
                                 }
                                 this.isBlocking = true;
                                 this.fakeBlockState = true;
-                            } else {
-                                if (this.blockTick == 1 && this.isPlayerBlocking()) {
-                                    this.stopBlock();
-                                }
-                                this.blockTick = 0;
-                                Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
-                                this.isBlocking = false;
-                                this.fakeBlockState = false;
+                                break;
                             }
+                            if (this.blockTick == 1 && this.isPlayerBlocking()) {
+                                this.stopBlock();
+                                this.setCurrentSlot();
+                            }
+                            this.blockTick = 0;
+                            Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
+                            this.isBlocking = false;
+                            this.fakeBlockState = false;
                             break;
-                        case 4:
+                        }
+                        case 4: {
                             if (this.hasValidTarget()) {
                                 if (!Epilogue.playerStateManager.digging && !Epilogue.playerStateManager.placing) {
                                     switch (this.blockTick) {
@@ -502,6 +500,7 @@ public class Aura extends Module {
                             Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
                             this.isBlocking = false;
                             this.fakeBlockState = false;
+                        }
                     }
                 }
                 boolean attacked = false;
@@ -613,6 +612,20 @@ public class Aura extends Module {
                     }
             }
         }
+    }
+
+    private int findEmptySlot(int currentSlot) {
+        int i;
+        for (i = 0; i < 9; ++i) {
+            if (i == currentSlot || Aura.mc.thePlayer.inventory.getStackInSlot(i) != null) continue;
+            return i;
+        }
+        for (i = 0; i < 9; ++i) {
+            ItemStack stack;
+            if (i == currentSlot || (stack = Aura.mc.thePlayer.inventory.getStackInSlot(i)) == null || stack.hasDisplayName()) continue;
+            return i;
+        }
+        return Math.floorMod(currentSlot - 1, 9);
     }
 
     @EventTarget(Priority.LOWEST)
