@@ -19,7 +19,6 @@ import epilogue.event.types.EventType;
 import epilogue.events.*;
 import epilogue.mixin.IAccessorEntity;
 import epilogue.module.Module;
-import epilogue.module.modules.combat.Aura;
 import epilogue.module.modules.movement.LongJump;
 import epilogue.util.MoveUtil;
 import epilogue.value.values.BooleanValue;
@@ -55,27 +54,27 @@ public class Velocity extends Module {
     private boolean attackReduceSuccess = false;
 
     public final ModeValue mode = new ModeValue("mode", 0, new String[]{"Vanilla", "JumpReset", "Prediction"});
-    public final BooleanValue smartRotJumpReset = new BooleanValue("Smart Rotate", false, () -> this.mode.getValue() == 2);
-    public final IntValue rotateTicks = new IntValue("Rotate Ticks", 2, 1, 10, () -> this.mode.getValue() == 2 && this.smartRotJumpReset.getValue());
-    public final BooleanValue autoJump = new BooleanValue("Auto Jump", true, () -> this.mode.getValue() == 2 && this.smartRotJumpReset.getValue());
-    public final BooleanValue useIntaveFactor = new BooleanValue("Reduce2", false, () -> this.mode.getValue() == 2);
-    public final FloatValue intaveFactor = new FloatValue("Reduce2 Factor", 0.78f, 0.1f, 1.0f, () -> this.mode.getValue() == 2 && this.useIntaveFactor.getValue());
-    public final BooleanValue keepVerticalIntave = new BooleanValue("Keep Vertical", true, () -> this.mode.getValue() == 2 && this.useIntaveFactor.getValue());
-    public final BooleanValue attackReduce = new BooleanValue("Attack Reduce", false, () -> this.mode.getValue() == 2);
-    public final PercentValue chance = new PercentValue("Change", 100);
     public final PercentValue horizontal = new PercentValue("Horizontal", 100);
     public final PercentValue vertical = new PercentValue("Vertical", 100);
     public final PercentValue explosionHorizontal = new PercentValue("Explosions Horizontal", 100);
     public final PercentValue explosionVertical = new PercentValue("Explosions Vertical", 100);
+    public final PercentValue chance = new PercentValue("Change", 100);
     public final BooleanValue fakeCheck = new BooleanValue("Check Fake", true);
+    public final BooleanValue smartRotJumpReset = new BooleanValue("Smart Rotate", false, () -> this.mode.getValue() == 2);
+    public final IntValue rotateTicks = new IntValue("Rotate Ticks", 2, 1, 10, () -> this.mode.getValue() == 2 && this.smartRotJumpReset.getValue());
+    public final BooleanValue autoJump = new BooleanValue("Auto Jump", true, () -> this.mode.getValue() == 2 && this.smartRotJumpReset.getValue());
+    public final BooleanValue reduce2 = new BooleanValue("Reduce2", false, () -> this.mode.getValue() == 2);
+    public final FloatValue reduce2Factor = new FloatValue("Reduce2 Factor", 0.78f, 0.1f, 1.0f, () -> this.mode.getValue() == 2 && this.reduce2.getValue());
+    public final BooleanValue keepVertical = new BooleanValue("Keep Vertical", true, () -> this.mode.getValue() == 2 && this.reduce2.getValue());
+    public final BooleanValue attackReduce = new BooleanValue("Attack Reduce", false, () -> this.mode.getValue() == 2);
     public final IntValue delayTicks = new IntValue("Delay Ticks", 3, 1, 20, () -> this.mode.getValue() == 2);
     public final PercentValue delayChance = new PercentValue("Chance", 100, () -> this.mode.getValue() == 2);
     public final BooleanValue jumpReset = new BooleanValue("Jump Reset", true, () -> this.mode.getValue() == 2);
-    public final IntValue hurt = new IntValue("Reduce HurtTime", 10, 1, 10, () -> this.mode.getValue() == 2);
-    public final FloatValue astolftor = new FloatValue("Reduce Factor", 0.6f, 0.1f, 1.0f, () -> this.mode.getValue() == 2);
-    public final BooleanValue test = new BooleanValue("Blink", true, () -> this.mode.getValue() == 2);
-    public final BooleanValue showBlinkTicks = new BooleanValue("Show Blink Ticks", false, () -> this.mode.getValue() == 2 && this.test.getValue());
-    public final BooleanValue USerDP = new BooleanValue("USer", false, () -> this.mode.getValue() == 1);
+    public final IntValue reduceHurtTime = new IntValue("Reduce HurtTime", 10, 1, 10, () -> this.mode.getValue() == 2);
+    public final FloatValue reduceFactor = new FloatValue("Reduce Factor", 0.6f, 0.1f, 1.0f, () -> this.mode.getValue() == 2);
+    public final BooleanValue blink = new BooleanValue("Blink", true, () -> this.mode.getValue() == 2);
+    public final BooleanValue showBlinkTicks = new BooleanValue("Show Blink Ticks", false, () -> this.mode.getValue() == 2 && this.blink.getValue());
+    public final BooleanValue airDelay = new BooleanValue("Air Delay", false, () -> this.mode.getValue() == 1);
 
     public Velocity() {
         super("Velocity", false);
@@ -128,11 +127,11 @@ public class Velocity extends Module {
                     this.attackReduceTriggered = false;
                 }
 
-                if (this.useIntaveFactor.getValue() && !this.attackReduceTriggered) {
+                if (this.reduce2.getValue() && !this.attackReduceTriggered) {
                     this.applyIntaveFactorReduction(event);
                 }
 
-                if (!this.attackReduce.getValue() && !this.useIntaveFactor.getValue()) {
+                if (!this.attackReduce.getValue() && !this.reduce2.getValue()) {
                     this.applyVanilla(event);
                 }
             }
@@ -191,9 +190,9 @@ public class Velocity extends Module {
                 }
             }
 
-            if (this.astolftor.getValue() < 1.0f && mc.thePlayer.hurtTime == this.hurt.getValue() && System.currentTimeMillis() - this.lastAttackTime <= 8000L) {
-                mc.thePlayer.motionX *= this.astolftor.getValue();
-                mc.thePlayer.motionZ *= this.astolftor.getValue();
+            if (this.reduceFactor.getValue() < 1.0f && mc.thePlayer.hurtTime == this.reduceHurtTime.getValue() && System.currentTimeMillis() - this.lastAttackTime <= 8000L) {
+                mc.thePlayer.motionX *= this.reduceFactor.getValue();
+                mc.thePlayer.motionZ *= this.reduceFactor.getValue();
             }
 
             if (this.reverseFlag) {
@@ -219,7 +218,7 @@ public class Velocity extends Module {
                 this.delayActive = false;
             }
 
-            if (this.test.getValue()) {
+            if (this.blink.getValue()) {
                 if (System.currentTimeMillis() - this.blinkStartTime < this.blinkDuration) {
                     Epilogue.blinkManager.setBlinkState(true, BlinkModules.BLINK);
                     this.blinkTicks++;
@@ -234,12 +233,12 @@ public class Velocity extends Module {
     }
 
     private void applyIntaveFactorReduction(KnockbackEvent event) {
-        float factor = this.intaveFactor.getValue();
+        float factor = this.reduce2Factor.getValue();
         event.setX(event.getX() * factor);
         event.setZ(event.getZ() * factor);
         mc.thePlayer.motionX *= factor;
         mc.thePlayer.motionZ *= factor;
-        if (!this.keepVerticalIntave.getValue()) {
+        if (!this.keepVertical.getValue()) {
             event.setY(event.getY() * factor);
             mc.thePlayer.motionY *= factor;
         }
@@ -302,7 +301,7 @@ public class Velocity extends Module {
                         event.setCancelled(true);
                         this.reverseFlag = true;
                         this.reverseStartTime = System.currentTimeMillis();
-                        if (this.test.getValue()) {
+                        if (this.blink.getValue()) {
                             this.blinkStartTime = System.currentTimeMillis();
                             Epilogue.blinkManager.setBlinkState(true, BlinkModules.BLINK);
                         }
@@ -313,7 +312,7 @@ public class Velocity extends Module {
                 return;
             }
 
-            if (this.mode.getValue() == 1 && this.USerDP.getValue() && mc.thePlayer != null && !mc.thePlayer.onGround) {
+            if (this.mode.getValue() == 1 && this.airDelay.getValue() && mc.thePlayer != null && !mc.thePlayer.onGround) {
                 Epilogue.delayManager.setDelayState(true, DelayModules.VELOCITY);
                 Epilogue.delayManager.delayedPacket.offer((Packet<INetHandlerPlayClient>) (Packet<?>) packet);
                 event.setCancelled(true);
@@ -443,8 +442,8 @@ public class Velocity extends Module {
                 suffix.add("Ticks:" + this.rotateTicks.getValue());
             }
 
-            if (this.useIntaveFactor.getValue()) {
-                suffix.add(String.format("ReduceFactor:%.2f", this.intaveFactor.getValue()));
+            if (this.reduce2.getValue()) {
+                suffix.add(String.format("ReduceFactor:%.2f", this.reduce2Factor.getValue()));
             }
 
             if (this.attackReduce.getValue()) {
