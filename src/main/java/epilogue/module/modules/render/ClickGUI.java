@@ -8,7 +8,7 @@ import org.lwjgl.input.Keyboard;
 
 public class ClickGUI extends Module {
     
-    private final ModeValue mode = new ModeValue("Mode", 0, new String[]{"Dropdown"});
+    private final ModeValue mode = new ModeValue("Mode", 1, new String[]{"Dropdown", "Menu"});
 
     public ClickGUI() {
         super("ClickGUI", false);
@@ -25,6 +25,13 @@ public class ClickGUI extends Module {
                         Epilogue.guiManager.closeDropdownGui();
                     } else {
                         Epilogue.guiManager.openDropdownGui();
+                    }
+                    break;
+                case "Menu":
+                    if (Epilogue.guiManager.isMenuGuiOpen()) {
+                        Epilogue.guiManager.closeMenuGui();
+                    } else {
+                        Epilogue.guiManager.openMenuGui();
                     }
                     break;
             }

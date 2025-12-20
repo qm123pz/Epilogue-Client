@@ -29,12 +29,18 @@ public class FontTransformer {
 
     private void loadFonts() {
         loadFont("icon", "/assets/minecraft/epilogue/font/icon.ttf");
+        loadFont("icon2", "/assets/minecraft/epilogue/font/icon2.ttf");
         loadFont("Arial", "/assets/minecraft/epilogue/font/Arial.ttf");
         loadFont("ArialBold", "/assets/minecraft/epilogue/font/ArialBold.ttf");
         loadFont("RobotoMedium", "/assets/minecraft/epilogue/font/Roboto-Medium.ttf");
         loadFont("JetBrainsMono", "/assets/minecraft/epilogue/font/jetbrains.ttf");
         loadFont("MicrosoftYaHei", "/assets/minecraft/epilogue/font/msyh-regular.ttf");
         loadFont("MicrosoftYaHei Bold", "/assets/minecraft/epilogue/font/msyh-bold.ttf");
+        loadFont("bold", "/assets/minecraft/epilogue/font/bold.ttf");
+        loadFont("Inter_Regular", "/assets/minecraft/epilogue/font/Inter_Regular.ttf");
+        loadFont("Inter_Medium", "/assets/minecraft/epilogue/font/Inter_Medium.ttf");
+        loadFont("Inter_SemiBold", "/assets/minecraft/epilogue/font/Inter_SemiBold.ttf");
+        loadFont("Inter_Bold", "/assets/minecraft/epilogue/font/Inter_Bold.ttf");
         loadFont("RalewayExtraBold", "/assets/minecraft/epilogue/font/raleway-extrabold.ttf");
         loadFont("RobotoBlack", "/assets/minecraft/epilogue/font/roboto-black.ttf");
         loadFont("RobotoRegular", "/assets/minecraft/epilogue/font/roboto-regular.ttf");

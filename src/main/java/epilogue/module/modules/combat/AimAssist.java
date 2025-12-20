@@ -38,21 +38,21 @@ public class AimAssist extends Module {
     public final ModeValue rotationMode = new ModeValue("Rotation Mode", 0, new String[]{"Normal", "OP Rotation"});
     public final ModeValue yawAlgorithm = new ModeValue("YawAlgorithm", 0, 
         new String[]{"Linear", "SmoothLinear", "EIO", "Skewed-Unimodal", "Physical-Simulation", "Simple-NeuralNetwork", "Recorded-Features"}, 
-        () -> rotationMode.getModeString().equals("OP-Rotation"));
+        () -> rotationMode.getValue() == 1);
     public final ModeValue pitchAlgorithm = new ModeValue("PitchAlgorithm", 0, 
         new String[]{"Linear", "SmoothLinear", "EIO", "Skewed-Unimodal", "Physical-Simulation", "Simple-NeuralNetwork", "Recorded-Features"}, 
-        () -> rotationMode.getModeString().equals("OP-Rotation"));
+        () -> rotationMode.getValue() == 1);
     public final BooleanValue simulateFriction = new BooleanValue("SimulateFriction", true, 
-        () -> rotationMode.getModeString().equals("OP-Rotation"));
+        () -> rotationMode.getValue() == 1);
     public final ModeValue frictionAlgorithm = new ModeValue("FrictionAlgorithm", 0, 
         new String[]{"Time-Incremental", "CustomCurve", "TPAC"}, 
-        () -> rotationMode.getModeString().equals("OP-Rotation") && simulateFriction.getValue());
+        () -> rotationMode.getValue() == 1 && simulateFriction.getValue());
     public final BooleanValue debugTurnSpeed = new BooleanValue("DebugTurnSpeed", false, 
-        () -> rotationMode.getModeString().equals("OP-Rotation"));
+        () -> rotationMode.getValue() == 1);
     public final BooleanValue recordMode = new BooleanValue("RecordMode", false, 
-        () -> rotationMode.getModeString().equals("OP-Rotation") && 
-              (yawAlgorithm.getModeString().equals("Recorded-Features") || 
-               pitchAlgorithm.getModeString().equals("Recorded-Features")));
+        () -> rotationMode.getValue() == 1 && 
+              (yawAlgorithm.getValue() == 6 || 
+               pitchAlgorithm.getValue() == 6));
     
     public final BooleanValue stopOnTarget = new BooleanValue("Stop On Target", false);
     public final IntValue delayTick = new IntValue("Delay Tick", 0, 0, 5);
@@ -142,7 +142,7 @@ public class AimAssist extends Module {
                                     return;
                                 }
                                 
-                                if (rotationMode.getModeString().equals("OP-Rotation")) {
+                                if (rotationMode.getValue() == 1) {
                                     updateOPRotationSettings();
                                     opRotationSystem.conduct(player);
                                     

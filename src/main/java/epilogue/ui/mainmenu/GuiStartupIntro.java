@@ -26,8 +26,8 @@ public final class GuiStartupIntro extends GuiScreen {
     private static final float T_HOLD_TEXT = 3.50f;
     private static final float T_WAIT_BEFORE_END = 1.25f;
     private static final float TEXT_SCALE = 1.0f;
-    private static final float BODY_SIZE = 60.0f;
-    private static final float EPILO_SIZE = 100.0f;
+    private static final float BODY_SIZE = 56.0f;
+    private static final float EPILO_SIZE = 92.0f;
     private static final float T_TO_MENU_FADE_OUT = 0.35f;
     private static final float T_TO_MENU_FADE_IN = 0.35f;
 
@@ -106,21 +106,24 @@ public final class GuiStartupIntro extends GuiScreen {
         float textAlpha = (t >= p3) ? 1.0f : easeInOut(seg(t, p2, p3));
         float moveAlphaEnd = p0 + (T_MOVE_UP * 0.65f);
         float moveAlpha = (t >= moveAlphaEnd) ? 1.0f : easeInOut(seg(t, p0, moveAlphaEnd));
+
         float centerX = w / 2.0f;
         float centerY = h / 2.0f;
         float base = Math.min(w, h);
-        float logoW = Math.min(256.0f, base * 0.26f);
-        float logoH = logoW;
-        if (logoH > base * 0.30f) {
-            logoH = base * 0.30f;
+        float logoBase = Math.min(256.0f, base * 0.24f);
+        float logoSize = logoBase * uiScale;
+        float logoW = logoSize;
+        float logoH = logoSize;
+        if (logoH > base * 0.26f * uiScale) {
+            logoH = base * 0.26f * uiScale;
             logoW = logoH;
         }
-        float startGroupY = h * 0.68f;
-        float endGroupY = h * 0.18f;
+        float startGroupY = h * 0.64f;
+        float endGroupY = h * 0.14f;
         float groupY = lerp(startGroupY, endGroupY, moveT);
         float logoX = centerX - logoW / 2.0f;
-        float logoY = groupY;
-        float epiloY = logoY + logoH + 8.0f;
+        float logoY = groupY - 6.0f * uiScale;
+        float epiloY = logoY + logoH + 16.0f * uiScale;
         float alphaMain = clamp01(moveAlpha);
         if (alphaMain > 0.001f) {
             GL11.glEnable(GL11.GL_TEXTURE_2D);
@@ -134,38 +137,42 @@ public final class GuiStartupIntro extends GuiScreen {
         if (alphaMain > 0.001f) {
             String mainText = "Epilogue";
             int color = rgba(255, 255, 255, (int) (255.0f * alphaMain));
-            int textW = getStringWidthFontScaled(mainText, EPILO_SIZE, TEXT_SCALE);
+            float epiloSize = EPILO_SIZE * uiScale;
+            int textW = getStringWidthFontScaled(mainText, epiloSize, TEXT_SCALE);
             float textX = centerX - textW / 2.0f;
-            drawStringFontScaled(mainText, textX, epiloY, color, EPILO_SIZE, TEXT_SCALE);
+            drawStringFontScaled(mainText, textX, epiloY, color, epiloSize, TEXT_SCALE);
         }
         if (textAlpha > 0.001f) {
             int bodyColor = rgba(235, 235, 235, 255);
             String en = "The story completes only when closed, the road reveals its form only at its end—we build forward, yet seldom admit, from the start, that inevitable backward gaze.";
             String zh = "故事在合上书页后才真正完整，道路在抵达边界后方显露出全部形状。我们习惯向前构建，却鲜少在开始的时刻，就承认那个必然到来的、回望的视角。";
+            float bodySize = BODY_SIZE * uiScale;
             int maxWidth = (int) (w * 0.82f);
-            List<String> enLines = wrapTextScaled(en, maxWidth, BODY_SIZE, TEXT_SCALE);
-            List<String> zhLines = wrapTextScaled(zh, maxWidth, BODY_SIZE, TEXT_SCALE);
-            int lineHeight = getFontHeightFontScaled(BODY_SIZE, TEXT_SCALE);
+            List<String> enLines = wrapTextScaled(en, maxWidth, bodySize, TEXT_SCALE);
+            List<String> zhLines = wrapTextScaled(zh, maxWidth, bodySize, TEXT_SCALE);
+            int lineHeight = getFontHeightFontScaled(bodySize, TEXT_SCALE);
             int totalLines = enLines.size() + 1 + zhLines.size();
             int totalH = totalLines * (lineHeight + 3);
-            float blockY = h * 0.68f;
-            int y = (int) (blockY - totalH / 2.0f);
+            float blockY = h * 0.72f;
+            int y = (int) (blockY - totalH / 2.0f + 10.0f * uiScale);
             for (String s : enLines) {
-                int sw = getStringWidthFontScaled(s, BODY_SIZE, TEXT_SCALE);
-                drawStringFontScaled(s, (centerX - sw / 2.0f), y, bodyColor, BODY_SIZE, TEXT_SCALE);
+                int sw = getStringWidthFontScaled(s, bodySize, TEXT_SCALE);
+                drawStringFontScaled(s, (centerX - sw / 2.0f), y, bodyColor, bodySize, TEXT_SCALE);
                 y += lineHeight + 3;
             }
             y += lineHeight;
             for (String s : zhLines) {
-                int sw = getStringWidthFontScaled(s, BODY_SIZE, TEXT_SCALE);
-                drawStringFontScaled(s, (centerX - sw / 2.0f), y, bodyColor, BODY_SIZE, TEXT_SCALE);
+                int sw = getStringWidthFontScaled(s, bodySize, TEXT_SCALE);
+                drawStringFontScaled(s, (centerX - sw / 2.0f), y, bodyColor, bodySize, TEXT_SCALE);
                 y += lineHeight + 3;
             }
             float maskAlpha = 1.0f - clamp01(textAlpha);
             if (maskAlpha > 0.001f) {
                 GL11.glEnable(GL11.GL_SCISSOR_TEST);
                 endUiScale();
-                applyScissorRect(0, (int) (blockY - totalH / 2.0f) - 8, (int) w, totalH + 16);
+                int scissorY = (int) (blockY - totalH / 2.0f + 10.0f * uiScale) - 8;
+                int scissorH = totalH + 16;
+                applyScissorRect(0, scissorY, (int) w, scissorH);
                 beginUiScale(w, h, uiScale);
                 drawFullscreenBlack(maskAlpha);
                 GL11.glDisable(GL11.GL_SCISSOR_TEST);

@@ -3,7 +3,7 @@
     "toggled": false,
     "key": 0,
     "hidden": false,
-    "Horizontal Speed": 3.0,
+    "Horizontal Speed": 3.1724138,
     "Vertical Speed": 0.0,
     "Smoothing": 50,
     "Range": 4.5,
@@ -27,7 +27,7 @@
     "key": 0,
     "hidden": false,
     "Sword": "Astolfo",
-    "BlockPos X": 0.0,
+    "BlockPos X": 0.0068965517,
     "BlockPos Y": 0.0,
     "BlockPos Z": 0.0,
     "Item Size": 0.0
@@ -107,9 +107,9 @@
     "key": 0,
     "hidden": false,
     "Range": 4.5,
-    "Speed": 20,
-    "Place Delay": 50,
-    "Rotation Tolerance": 25,
+    "Speed": 100,
+    "Place Delay": 0,
+    "Rotation Tolerance": 100,
     "Show Progress": true,
     "Move Fix": "Silent"
   },
@@ -216,7 +216,7 @@
     "key": 0,
     "hidden": false,
     "Min Delay": 0,
-    "Max Delay": 0,
+    "Max Delay": 8,
     "Open Delay": 0,
     "Mode": "Instant",
     "Auto Close": true,
@@ -233,7 +233,7 @@
     "toggled": false,
     "key": 54,
     "hidden": false,
-    "Mode": "Dropdown"
+    "Mode": "Menu"
   },
   "DynamicIsland": {
     "toggled": true,
@@ -395,7 +395,7 @@
     "Mode": "Legit"
   },
   "ItemESP": {
-    "toggled": false,
+    "toggled": true,
     "key": 0,
     "hidden": false,
     "Opacity": 25,
@@ -433,11 +433,11 @@
     "AutoBlock Only Right Click": false,
     "AutoBlock CPS": 10.0,
     "AutoBlock Range": 6.0,
-    "Swing Range": 3.5,
+    "Swing Range": 3.537931,
     "Attack Range": 3.0,
     "FOV": 360,
-    "Min CPS": 10,
-    "Max CPS": 10,
+    "Min CPS": 2,
+    "Max CPS": 2,
     "Switch Delay": 150,
     "Rotation Mode": "Silent",
     "MoveFix Mode": "Silent",
@@ -742,10 +742,7 @@
     "Scale": 1.0,
     "OffsetX": 0,
     "OffsetY": 40,
-    "Background": 25,
     "Head": true,
-    "Indicator": true,
-    "Outline": false,
     "Animations": true,
     "Shadow": true,
     "KaOnly": true,
@@ -803,7 +800,7 @@
     "Normal Reduce HurtTime": 10,
     "Norma Reduce Factor": 0.6,
     "Blink": true,
-    "Show Blink Ticks": false,
+    "Show Blink Ticks": true,
     "Air Delay": false
   },
   "ViewClip": {

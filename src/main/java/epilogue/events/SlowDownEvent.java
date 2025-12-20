@@ -2,7 +2,7 @@ package epilogue.events;
 
 import epilogue.event.events.Cancellable;
 
-/* loaded from: Arcane 8.10.jar:qwq/arcane/event/impl/events/player/SlowDownEvent.class */
+/* loaded from: Arcane 8.10.jar:qwq/menu/event/impl/events/player/SlowDownEvent.class */
 public abstract class SlowDownEvent implements Cancellable {
     private float strafe;
     private float forward;

@@ -67,10 +67,10 @@ public class TargetHUD extends Module {
     public final FloatValue scale = new FloatValue("Scale", 1.0F, 0.5F, 1.5F);
     public final IntValue offX = new IntValue("OffsetX", 0, -255, 255);
     public final IntValue offY = new IntValue("OffsetY", 40, -255, 255);
-    public final PercentValue background = new PercentValue("Background", 25);
+//    public final PercentValue background = new PercentValue("Background", 25);
     public final BooleanValue head = new BooleanValue("Head", true);
-    public final BooleanValue indicator = new BooleanValue("Indicator", true);
-    public final BooleanValue outline = new BooleanValue("Outline", false);
+//    public final BooleanValue indicator = new BooleanValue("Indicator", true);
+//    public final BooleanValue outline = new BooleanValue("Outline", false);
     public final BooleanValue animations = new BooleanValue("Animations", true);
     public final BooleanValue shadow = new BooleanValue("Shadow", true);
     public final BooleanValue kaOnly = new BooleanValue("KaOnly", true);
@@ -89,37 +89,37 @@ public class TargetHUD extends Module {
         }
     }
 
-    private ResourceLocation getSkin(EntityLivingBase entityLivingBase) {
-        if (entityLivingBase instanceof EntityPlayer) {
-            NetworkPlayerInfo playerInfo = mc.getNetHandler().getPlayerInfo(entityLivingBase.getName());
-            if (playerInfo != null) {
-                return playerInfo.getLocationSkin();
-            }
-        }
-        return null;
-    }
-
-    private Color getTargetColor(EntityLivingBase entityLivingBase) {
-        if (entityLivingBase instanceof EntityPlayer) {
-            if (TeamUtil.isFriend((EntityPlayer) entityLivingBase)) {
-                return Epilogue.friendManager.getColor();
-            }
-            if (TeamUtil.isTarget((EntityPlayer) entityLivingBase)) {
-                return Epilogue.targetManager.getColor();
-            }
-        }
-        switch (this.color.getValue()) {
-            case 0:
-                if (!(entityLivingBase instanceof EntityPlayer)) {
-                    return new Color(-1);
-                }
-                return TeamUtil.getTeamColor((EntityPlayer) entityLivingBase, 1.0F);
-            case 1:
-                return Color.CYAN;
-            default:
-                return new Color(-1);
-        }
-    }
+//    private ResourceLocation getSkin(EntityLivingBase entityLivingBase) {
+//        if (entityLivingBase instanceof EntityPlayer) {
+//            NetworkPlayerInfo playerInfo = mc.getNetHandler().getPlayerInfo(entityLivingBase.getName());
+//            if (playerInfo != null) {
+//                return playerInfo.getLocationSkin();
+//            }
+//        }
+//        return null;
+//    }
+//
+//    private Color getTargetColor(EntityLivingBase entityLivingBase) {
+//        if (entityLivingBase instanceof EntityPlayer) {
+//            if (TeamUtil.isFriend((EntityPlayer) entityLivingBase)) {
+//                return Epilogue.friendManager.getColor();
+//            }
+//            if (TeamUtil.isTarget((EntityPlayer) entityLivingBase)) {
+//                return Epilogue.targetManager.getColor();
+//            }
+//        }
+//        switch (this.color.getValue()) {
+//            case 0:
+//                if (!(entityLivingBase instanceof EntityPlayer)) {
+//                    return new Color(-1);
+//                }
+//                return TeamUtil.getTeamColor((EntityPlayer) entityLivingBase, 1.0F);
+//            case 1:
+//                return Color.CYAN;
+//            default:
+//                return new Color(-1);
+//        }
+//    }
 
     public TargetHUD() {
         super("TargetHUD", false, true);
