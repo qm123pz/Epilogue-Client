@@ -95,8 +95,14 @@ public class PostProcessing {
     }
 
     public static void endBloom(Framebuffer bloomBuffer) {
+        endBloom(bloomBuffer, epilogue.module.modules.render.PostProcessing.getBloomOffset());
+    }
+
+    public static void endBloom(Framebuffer bloomBuffer, int bloomOffset) {
         if (bloomBuffer == null) return;
         mc.getFramebuffer().bindFramebuffer(false);
-        BloomShader.renderBloom(bloomBuffer.framebufferTexture, epilogue.module.modules.render.PostProcessing.getBloomIterations(), epilogue.module.modules.render.PostProcessing.getBloomOffset());
+        BloomShader.renderBloom(bloomBuffer.framebufferTexture,
+                epilogue.module.modules.render.PostProcessing.getBloomIterations(),
+                Math.max(1, bloomOffset));
     }
 }

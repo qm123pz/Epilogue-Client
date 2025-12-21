@@ -1,12 +1,9 @@
 package epilogue.mixin;
 
-import epilogue.Epilogue;
 import epilogue.management.RotationState;
-import epilogue.module.modules.render.Item2D;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.item.EntityItem;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.spongepowered.asm.mixin.Mixin;
@@ -37,14 +34,6 @@ public abstract class MixinRenderManager {
             cancellable = true
     )
     private void renderEntityStatic(Entity entity, float float2, boolean boolean3, CallbackInfoReturnable<Boolean> callbackInfoReturnable) {
-        if (entity instanceof EntityItem && Epilogue.moduleManager != null) {
-            Item2D item2D = (Item2D) Epilogue.moduleManager.modules.get(Item2D.class);
-            if (item2D != null && item2D.isEnabled()) {
-                callbackInfoReturnable.setReturnValue(false);
-                return;
-            }
-        }
-
         if (entity instanceof EntityPlayerSP && RotationState.isRotated(1)) {
             EntityPlayerSP entityPlayerSP = (EntityPlayerSP) entity;
             this._prevRenderYawOffset = entityPlayerSP.prevRenderYawOffset;

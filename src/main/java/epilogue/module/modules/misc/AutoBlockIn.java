@@ -46,6 +46,7 @@ public class AutoBlockIn extends Module {
     public final IntValue placeDelay = new IntValue("Place Delay", 50, 0, 200);
     public final IntValue rotationTolerance = new IntValue("Rotation Tolerance", 25, 5, 100);
     public final BooleanValue showProgress = new BooleanValue("Show Progress", true);
+    public final BooleanValue autoJump = new BooleanValue("AutoJump", false);
     public final ModeValue moveFix = new ModeValue("Move Fix", 1, new String[]{"None", "Silent", "Strict"});
     private float serverYaw;
     private float serverPitch;
@@ -60,6 +61,8 @@ public class AutoBlockIn extends Module {
     private static final double INSET = 0.05;
     private static final double STEP = 0.2;
     private static final double JIT = 0.020000000000000004;
+
+    private boolean autoJumpWasBlocked = false;
 
     public AutoBlockIn() {
         super("AutoBlockIn", false);
@@ -117,6 +120,9 @@ public class AutoBlockIn extends Module {
         if (AutoBlockIn.mc.currentScreen != null) {
             return;
         }
+
+        this.handleAutoJump();
+
         this.serverYaw = event.getYaw();
         this.serverPitch = event.getPitch();
         this.updateProgress();
@@ -151,6 +157,40 @@ public class AutoBlockIn extends Module {
             event.setRotation(this.aimYaw, this.aimPitch, 6);
             event.setPervRotation((Integer)this.moveFix.getValue() != 0 ? this.aimYaw : AutoBlockIn.mc.thePlayer.rotationYaw, 6);
         }
+    }
+
+    private void handleAutoJump() {
+        if (!((Boolean)this.autoJump.getValue()).booleanValue()) {
+            this.autoJumpWasBlocked = false;
+            return;
+        }
+        if (AutoBlockIn.mc.thePlayer == null || AutoBlockIn.mc.theWorld == null) {
+            this.autoJumpWasBlocked = false;
+            return;
+        }
+        if (!AutoBlockIn.mc.thePlayer.onGround) {
+            this.autoJumpWasBlocked = false;
+            return;
+        }
+        if (AutoBlockIn.mc.gameSettings.keyBindJump.isKeyDown()) {
+            this.autoJumpWasBlocked = true;
+            return;
+        }
+
+        Vec3 playerPos = AutoBlockIn.mc.thePlayer.getPositionVector();
+        BlockPos feetPos = new BlockPos(playerPos.xCoord, playerPos.yCoord, playerPos.zCoord);
+        boolean blocked = true;
+        for (int[] d : DIRS) {
+            if (this.isAir(feetPos.add(d[0], 0, d[2])) || this.isAir(feetPos.add(d[0], 1, d[2]))) {
+                blocked = false;
+                break;
+            }
+        }
+
+        if (blocked && !this.autoJumpWasBlocked) {
+            AutoBlockIn.mc.thePlayer.jump();
+        }
+        this.autoJumpWasBlocked = blocked;
     }
 
     @EventTarget

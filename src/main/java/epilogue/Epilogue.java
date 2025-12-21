@@ -92,7 +92,6 @@ public class Epilogue {
         moduleManager.modules.put(GhostHand.class, new GhostHand());
         moduleManager.modules.put(Indicators.class, new Indicators());
         moduleManager.modules.put(Interface.class, new Interface());
-        moduleManager.modules.put(Item2D.class, new Item2D());
         moduleManager.modules.put(JumpCircles.class, new JumpCircles());
         moduleManager.modules.put(InvManager.class, new InvManager());
         moduleManager.modules.put(InvWalk.class, new InvWalk());
