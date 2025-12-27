@@ -36,24 +36,28 @@ public class AimAssist extends Module {
     public final BooleanValue team = new BooleanValue("Teams", true);
     
     public final ModeValue rotationMode = new ModeValue("Rotation Mode", 0, new String[]{"Normal", "OP Rotation"});
-    public final ModeValue yawAlgorithm = new ModeValue("YawAlgorithm", 0, 
-        new String[]{"Linear", "SmoothLinear", "EIO", "Skewed-Unimodal", "Physical-Simulation", "Simple-NeuralNetwork", "Recorded-Features"}, 
+    public final ModeValue yawAlgorithm = new ModeValue("Yaw Algorithm", 0,
+        new String[]{"Linear", "SmoothLinear", "EIO", "SkewedUnimodal", "PhysicalSimulation", "SimpleNeuralNetwork"
+        //        , "Recorded-Features"
+        },
         () -> rotationMode.getValue() == 1);
-    public final ModeValue pitchAlgorithm = new ModeValue("PitchAlgorithm", 0, 
-        new String[]{"Linear", "SmoothLinear", "EIO", "Skewed-Unimodal", "Physical-Simulation", "Simple-NeuralNetwork", "Recorded-Features"}, 
+    public final ModeValue pitchAlgorithm = new ModeValue("PitchAlgorithm", 0,
+        new String[]{"Linear", "SmoothLinear", "EIO", "SkewedUnimodal", "PhysicalSimulation", "SimpleNeuralNetwork"
+        //        , "Recorded-Features"
+        },
         () -> rotationMode.getValue() == 1);
-    public final BooleanValue simulateFriction = new BooleanValue("SimulateFriction", true, 
+    public final BooleanValue simulateFriction = new BooleanValue("Simulate Friction", true,
         () -> rotationMode.getValue() == 1);
-    public final ModeValue frictionAlgorithm = new ModeValue("FrictionAlgorithm", 0, 
-        new String[]{"Time-Incremental", "CustomCurve", "TPAC"}, 
+    public final ModeValue frictionAlgorithm = new ModeValue("Friction Algorithm", 0,
+        new String[]{"TimeIncremental", "CustomCurve", "TPAC"},
         () -> rotationMode.getValue() == 1 && simulateFriction.getValue());
-    public final BooleanValue debugTurnSpeed = new BooleanValue("DebugTurnSpeed", false, 
+    public final BooleanValue debugTurnSpeed = new BooleanValue("Debug Turn Speed", false,
         () -> rotationMode.getValue() == 1);
-    public final BooleanValue recordMode = new BooleanValue("RecordMode", false, 
-        () -> rotationMode.getValue() == 1 && 
-              (yawAlgorithm.getValue() == 6 || 
-               pitchAlgorithm.getValue() == 6));
-    
+//    public final BooleanValue recordMode = new BooleanValue("RecordMode", false,
+//        () -> rotationMode.getValue() == 1 &&
+//              (yawAlgorithm.getValue() == 6 ||
+//               pitchAlgorithm.getValue() == 6));
+
     public final BooleanValue stopOnTarget = new BooleanValue("Stop On Target", false);
     public final IntValue delayTick = new IntValue("Delay Tick", 0, 0, 5);
     
@@ -187,7 +191,7 @@ public class AimAssist extends Module {
         opRotationSystem.setSimulateFriction(simulateFriction.getValue());
         opRotationSystem.setDebugTurnSpeed(debugTurnSpeed.getValue());
         opRotationSystem.setFrictionAlgorithm(frictionAlgorithm.getModeString());
-        opRotationSystem.setRecordMode(recordMode.getValue());
+        //opRotationSystem.setRecordMode(recordMode.getValue());
     }
 
     @EventTarget

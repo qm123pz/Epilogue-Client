@@ -37,7 +37,7 @@ public class OPRotationSystem {
         algorithms.put("Physical-Simulation", new PhysicalSimulationAlgorithm());
         algorithms.put("Skewed-Unimodal", new SkewedUnimodalAlgorithm());
         algorithms.put("Simple-NeuralNetwork", new SimpleNeuralNetworkAlgorithm());
-        algorithms.put("Recorded-Features", new RecordedFeaturesAlgorithm());
+        //algorithms.put("Recorded-Features", new RecordedFeaturesAlgorithm());
     }
 
     public void conduct(Entity target) {
@@ -190,12 +190,12 @@ public class OPRotationSystem {
         return distance <= 4.0;
     }
     
-    public void setRecordMode(boolean record) {
-        TurnSpeedAlgorithm recordedAlg = algorithms.get("Recorded-Features");
-        if (recordedAlg instanceof RecordedFeaturesAlgorithm) {
-            ((RecordedFeaturesAlgorithm) recordedAlg).setRecordMode(record);
-        }
-    }
+//    public void setRecordMode(boolean record) {
+//        TurnSpeedAlgorithm recordedAlg = algorithms.get("Recorded-Features");
+//        if (recordedAlg instanceof RecordedFeaturesAlgorithm) {
+//            ((RecordedFeaturesAlgorithm) recordedAlg).setRecordMode(record);
+//        }
+//    }
 
     public static class DiffRots {
         public float diffYaw;

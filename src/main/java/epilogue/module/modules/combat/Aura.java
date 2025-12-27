@@ -10,6 +10,7 @@ import epilogue.events.*;
 import epilogue.management.RotationState;
 import epilogue.mixin.IAccessorPlayerControllerMP;
 import epilogue.module.Module;
+import epilogue.module.modules.combat.Velocity;
 import epilogue.module.modules.movement.NoSlow;
 import epilogue.module.modules.player.Scaffold;
 import epilogue.module.modules.player.BedNuker;
@@ -45,7 +46,7 @@ import net.minecraft.world.WorldSettings.GameType;
 import java.util.ArrayList;
 
 public class Aura extends Module {
-    private static final Minecraft mc = Minecraft.getMinecraft();
+    private static final  Minecraft mc = Minecraft.getMinecraft();
     public static boolean rotationBlocked = false;
     public static boolean attackBlocked = false;
     public static boolean swingBlocked = false;
@@ -365,6 +366,14 @@ public class Aura extends Module {
             Epilogue.blinkManager.setBlinkState(true, BlinkModules.AUTO_BLOCK);
         }
         if (this.isEnabled() && event.getType() == EventType.PRE) {
+            Velocity velocity = (Velocity) Epilogue.moduleManager.modules.get(Velocity.class);
+            boolean forceFakeAb = velocity != null
+                    && velocity.isEnabled()
+                    && velocity.mode.getValue() == 2
+                    && velocity.mixReduce.getValue()
+                    && this.autoBlock.getValue() != 0
+                    && this.autoBlock.getValue() != 2;
+
             if (this.attackDelayMS > 0L) {
                 this.attackDelayMS -= 50L;
             }
@@ -373,7 +382,7 @@ public class Aura extends Module {
             if (!block) {
                 Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
                 this.isBlocking = false;
-                this.fakeBlockState = false;
+                this.fakeBlockState = forceFakeAb && this.hasValidTarget();
                 this.blockTick = 0;
             }
             if (attack) {
@@ -513,6 +522,10 @@ public class Aura extends Module {
                             this.fakeBlockState = false;
                         }
                     }
+
+                    if (forceFakeAb) {
+                        this.fakeBlockState |= this.hasValidTarget();
+                    }
                 }
                 boolean attacked = false;
                 if (this.isBoxInSwingRange(this.target.getBox())) {
@@ -536,6 +549,7 @@ public class Aura extends Module {
                         attacked = this.performAttack(event.getNewYaw(), event.getNewPitch());
                     }
                 }
+
                 if (swap) {
                     if (attacked) {
                         this.interactAttack(event.getNewYaw(), event.getNewPitch());

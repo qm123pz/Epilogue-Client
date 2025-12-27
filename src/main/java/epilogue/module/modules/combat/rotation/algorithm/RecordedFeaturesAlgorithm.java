@@ -33,17 +33,17 @@ public class RecordedFeaturesAlgorithm implements TurnSpeedAlgorithm {
     private void initializeFiles() {
         try {
             String gameDir = mc.mcDataDir.getAbsolutePath();
-            dataDir = new File(gameDir, "data/aureola_data/turnspeed");
+            dataDir = new File(gameDir, "Epilogue/rotation/recorded_features");
             yawDir = new File(dataDir, "yaw");
             pitchDir = new File(dataDir, "pitch");
             
             yawDir.mkdirs();
             pitchDir.mkdirs();
             
-            ySpeedFile = new File(yawDir, "speed_data.txt");
-            yMaxDiffFile = new File(yawDir, "maxd_data.txt");
-            pSpeedFile = new File(pitchDir, "speed_data.txt");
-            pMaxDiffFile = new File(pitchDir, "maxd_data.txt");
+            ySpeedFile = new File(yawDir, "speed.txt");
+            yMaxDiffFile = new File(yawDir, "maxd.txt");
+            pSpeedFile = new File(pitchDir, "speed.txt");
+            pMaxDiffFile = new File(pitchDir, "maxd.txt");
             
             if (!ySpeedFile.exists()) ySpeedFile.createNewFile();
             if (!yMaxDiffFile.exists()) yMaxDiffFile.createNewFile();
