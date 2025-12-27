@@ -1,9 +1,27 @@
 {
+  "accountManager": {
+    "accounts": [
+      {
+        "refreshToken": "M.C549_BAY.0.U.-CoAdsd1XY6TI4!GUPFKkUABpA442bNU58XKeZIn0!5f4b6OD3iQH9RYVRfp9EzZ3wG9P1sQbAGtGPRICGFn999NdERYVHB5XB3VRHRmriUUlgCb27SwAM4hYP6LO1JZrBBWKtURykdpNEa!JySp6HVbJAq2y!w9yLMbTKs80yuZ9v1EGZMMYEYAh4J6r7tDHjgBfCxjB!XKuD9D6ciTrUh2UehoohR6rHCnKgPrhxYe4tKaj9uYnyN9HECQfF2b8RCVoGGKqSjDDpRzHxpI5cX3nGsdYxoI63cdVv8SuyL1CpEao2zO8NQ3hFB8PAAj1*X!ekn2iCIYi!XQG80hQnbHggX1evi0O*4bKoJaJ2TGe",
+        "accessToken": "eyJraWQiOiIwNDkxODEiLCJhbGciOiJSUzI1NiJ9.eyJ4dWlkIjoiMjUzNTQzODQ1NzI2MzYzOCIsImFnZyI6IkFkdWx0Iiwic3ViIjoiMjc4MmQ1NTUtMDRiMy00NDNkLWFiZDgtMjAxYmRmNzFlNTEwIiwiYXV0aCI6IlhCT1giLCJucyI6ImRlZmF1bHQiLCJyb2xlcyI6W10sImlzcyI6ImF1dGhlbnRpY2F0aW9uIiwiZmxhZ3MiOlsib3JkZXJzXzIwMjIiLCJtc2FtaWdyYXRpb25fc3RhZ2U0IiwidHdvZmFjdG9yYXV0aCIsIm11bHRpcGxheWVyIl0sInByb2ZpbGVzIjp7Im1jIjoiZDQzMmQzNzMtN2IyYy00ZmVjLTlhY2EtMjM1ZmZiNzE4NDc0In0sInBsYXRmb3JtIjoiUENfTEFVTkNIRVIiLCJwZmQiOlt7InR5cGUiOiJtYyIsImlkIjoiZDQzMmQzNzMtN2IyYy00ZmVjLTlhY2EtMjM1ZmZiNzE4NDc0IiwibmFtZSI6IlJlYWxEaVppIn1dLCJuYmYiOjE3NjY3NTk0MzUsImV4cCI6MTc2Njg0NTgzNSwiaWF0IjoxNzY2NzU5NDM1LCJhaWQiOiI0MmE2MGE4NC01OTlkLTQ0YjItYTdjNi1iMDBjZGVmMWQ2YTIifQ.wQ6h3QfM9tKC6NE5aCd2eKoLQoaETCj0-zLliHGGA1UB3lRYMaUoGjEoaj7qN6_3-svJ8YmkGThxhJgUYfnNSpL3HNcIEB69z4UuN5gfehH6mEICxEHwPz-8rEWFXciZTpOc7uSl9OQ3xDEZJYRYjmWvdDSbYNQEx09JQr5djDQmBpWqeNL0uIJndrwPJSiOupuC_7RiQytS-yqztT-p_Z7yseHd-MxM_fUugSwK0qgKNFOX10xNcEiwVVCF8_aEZD3YaOoHwMSp7pUoL2jhfNDVgpS0CL1IU82DXhowliforDEA7nYVTizyl1rHae2vNk6McqS2L0PKJEQXNuvXHA",
+        "username": "RealDiZi",
+        "timestamp": 1766771239225,
+        "uuid": "d432d3737b2c4fec9aca235ffb718474"
+      },
+      {
+        "refreshToken": "M.C557_BAY.0.U.-CqxdYH5ViMUY*X0zfrfGp7zbmywiPWI0PNVJuzn0mrZ6dgbKZCMzUbsH7LVtR2vyGVA333LCeOnoRGdmBOkWHulOmLB9oE*GxOZ1Nk1zNUWwuVi8AierqYgK3q3E3U1S*!5bg9GhI5JVQ5Snfe1NhP*GXMteTOYG1Bk!XEvjMq9aNlTp6xWGIXngCuS5CqIl16FaP2IuKiW2GdCjekzxkY8UVfiftUCfNfD*i9f*eOe1CkvMJvd3SJChtRPH1SaQBTn31qJ5UlwuCb4b7DpX09nxJPU9nFX0LR3VWtFxiB2G37P3XGrDjznhV48FV2GoldCm1WaQzc5!rtHS62odH5qmF5zmoxYRLMwNlYDxz*hz",
+        "accessToken": "eyJraWQiOiIwNDkxODEiLCJhbGciOiJSUzI1NiJ9.eyJ4dWlkIjoiMjUzNTQyODc0MjEyMDAwOCIsImFnZyI6IkFkdWx0Iiwic3ViIjoiN2E0ZGZkMzMtZmU5NS00OGUzLWExYWUtNjVkZTNmNzYzM2I2IiwiYXV0aCI6IlhCT1giLCJucyI6ImRlZmF1bHQiLCJyb2xlcyI6W10sImlzcyI6ImF1dGhlbnRpY2F0aW9uIiwiZmxhZ3MiOlsibXNhbWlncmF0aW9uX3N0YWdlNCIsInR3b2ZhY3RvcmF1dGgiLCJtdWx0aXBsYXllciIsIm9yZGVyc18yMDIyIl0sInByb2ZpbGVzIjp7Im1jIjoiZDJhNmIzZTItNjA4ZC00OWQ2LThiYWYtNWU1ZWQ4YTQwNGUzIn0sInBsYXRmb3JtIjoiUENfTEFVTkNIRVIiLCJwZmQiOlt7InR5cGUiOiJtYyIsImlkIjoiZDJhNmIzZTItNjA4ZC00OWQ2LThiYWYtNWU1ZWQ4YTQwNGUzIiwibmFtZSI6InR6aV9kS01WVl8xMl8yNiJ9XSwibmJmIjoxNzY2NzY5MDU3LCJleHAiOjE3NjY4NTU0NTcsImlhdCI6MTc2Njc2OTA1NywiYWlkIjoiNDJhNjBhODQtNTk5ZC00NGIyLWE3YzYtYjAwY2RlZjFkNmEyIn0.obUh_jx8QYVC62khYoRnCybt1VqxZ5vE7EcaiMLq4JdT_ZLimC89EJNeBCqhc77t6QXRPZ6jmIY39BhEGNVSpwXF8aiGNoK8hxOh2j1FT_XfhhFPVoNqxFW1gwL0oHkf4i8P0lJ58mj7Zy-IIHaZZ-jizl0WH3bJbZhXZh6v97OM4zEMhATiAgLNLgR6kmGzSafE1tS1reh7IBjox8YFvn4T5Gr0WPb9t45NUNjCleyNn-Zr5CPPSDpgpwlGyNGhT0t9-331ODiWSBfEYazhJpvl9Ded2Cj1Nhk36fevT0UnAIIUeLbCkSMvnOPu77xjzIrWXk-3Pf7jgxTUNcxNCQ",
+        "username": "tzi_dKMVV_12_26",
+        "timestamp": 1766769057076,
+        "uuid": "d2a6b3e2608d49d68baf5e5ed8a404e3"
+      }
+    ]
+  },
   "AimAssist": {
     "toggled": false,
     "key": 0,
     "hidden": false,
-    "Horizontal Speed": 3.1724138,
+    "Horizontal Speed": 5.1034484,
     "Vertical Speed": 0.0,
     "Smoothing": 50,
     "Range": 4.5,
@@ -28,9 +46,9 @@
     "hidden": false,
     "Sword": "Astolfo",
     "BlockPos X": 0.0068965517,
-    "BlockPos Y": 0.0,
-    "BlockPos Z": 0.0,
-    "Item Size": 0.0
+    "BlockPos Y": 1.0,
+    "BlockPos Z": 0.46206897,
+    "Item Size": -0.38275862
   },
   "NoDebuff": {
     "toggled": false,
@@ -46,7 +64,7 @@
     "Range": 5.0,
     "Fov": 360,
     "Rotations": true,
-    "Swing": true,
+    "Swing": false,
     "Move Fix": "Slient",
     "Show": "NONE"
   },
@@ -69,9 +87,9 @@
     "Animation": "Slide In",
     "Rectangle": "Top",
     "Back Ground": true,
-    "Back Ground Alpha": 40,
+    "Back Ground Alpha": 132,
     "Position": 0,
-    "Text Height": 6.6,
+    "Text Height": 1.5862069,
     "Text Offset": 2.33
   },
   "AutoClicker": {
@@ -80,8 +98,8 @@
     "hidden": false,
     "Min Cps": 8,
     "Max Cps": 12,
-    "AutoBlockIn Hit": false,
-    "AutoBlockIn HitT icks": 1.5,
+    "Block Hit": false,
+    "Block Hit Ticks": 1.5,
     "Weapons Only": true,
     "Allow Tools": false,
     "Break Blocks": true
@@ -95,7 +113,7 @@
     "Regen Check": false
   },
   "AutoTool": {
-    "toggled": false,
+    "toggled": true,
     "key": 0,
     "hidden": false,
     "Delay": 0,
@@ -111,10 +129,11 @@
     "Place Delay": 0,
     "Rotation Tolerance": 100,
     "Show Progress": false,
+    "AutoJump": false,
     "Move Fix": "Silent"
   },
   "BedNuker": {
-    "toggled": false,
+    "toggled": true,
     "key": 45,
     "hidden": false,
     "Mode": "Legit",
@@ -165,10 +184,10 @@
   },
   "Blink": {
     "toggled": false,
-    "key": 47,
+    "key": 0,
     "hidden": false,
-    "Mode": "Default",
-    "Ticks": 20
+    "Mode": "Pulse",
+    "Ticks": 25
   },
   "Camera": {
     "toggled": false,
@@ -178,12 +197,12 @@
     "Only Third Person": true
   },
   "Chams": {
-    "toggled": false,
+    "toggled": true,
     "key": 0,
     "hidden": false,
     "Players": true,
-    "Friends": true,
-    "Enemies": true,
+    "Friends": false,
+    "Enemies": false,
     "Bosses": false,
     "Mobs": false,
     "Creepers": false,
@@ -213,12 +232,12 @@
   },
   "ChestStealer": {
     "toggled": false,
-    "key": 0,
+    "key": 21,
     "hidden": false,
     "Min Delay": 0,
-    "Max Delay": 8,
+    "Max Delay": 7,
     "Open Delay": 0,
-    "Mode": "Instant",
+    "Mode": "Normal",
     "Auto Close": true,
     "Check Name": true,
     "Skip Trash": true
@@ -233,14 +252,19 @@
     "toggled": false,
     "key": 54,
     "hidden": false,
-    "Mode": "Dropdown"
+    "Mode": "Dynamicisland"
+  },
+  "CloudMusic": {
+    "toggled": false,
+    "key": 34,
+    "hidden": false
   },
   "DynamicIsland": {
     "toggled": true,
     "key": 0,
     "hidden": false,
-    "Mode": "Flat",
-    "AnimationSpeed": 12.0,
+    "Mode": "Normal",
+    "AnimationSpeed": 6.634483,
     "BackgroundAlpha": 40,
     "ShowNotifications": true,
     "AnimationMode": "Normal",
@@ -264,7 +288,7 @@
   },
   "Disabler": {
     "toggled": false,
-    "key": 0,
+    "key": 21,
     "hidden": false,
     "Mode": "PredictionInventory"
   },
@@ -292,7 +316,7 @@
     "Bots": false
   },
   "FastPlace": {
-    "toggled": false,
+    "toggled": true,
     "key": 0,
     "hidden": false,
     "Delay": 1.0,
@@ -316,8 +340,8 @@
     "toggled": true,
     "key": 0,
     "hidden": false,
-    "Font": "OpenSansRegular",
-    "Size": 27.2
+    "Font": "Inter_Regular",
+    "Size": 32.068966
   },
   "GhostHand": {
     "toggled": false,
@@ -330,8 +354,8 @@
     "toggled": false,
     "key": 0,
     "hidden": true,
-    "Scale": 1.0,
-    "Offset": 50.0,
+    "Scale": 1.0172414,
+    "Offset": 107.27586,
     "Check Direction": true,
     "Fireballs": true,
     "Pearls": true,
@@ -342,19 +366,12 @@
     "key": 0,
     "hidden": true,
     "Color Mode": "Fade",
-    "Speed": 2.0,
-    "Main Color": "80FF95",
-    "Second Color": "00FFFF",
-    "Offset": 5.0,
-    "Index": 107.0,
+    "Speed": 1.0,
+    "Main Color": "621717",
+    "Second Color": "FF0000",
+    "Offset": 20.0,
+    "Index": 200.0,
     "ToggleSound": "Vanilla"
-  },
-  "Item2D": {
-    "toggled": true,
-    "key": 0,
-    "hidden": false,
-    "Size": 8.0,
-    "Max Distance": 48.0
   },
   "JumpCircles": {
     "toggled": false,
@@ -367,12 +384,12 @@
   },
   "InvManager": {
     "toggled": false,
-    "key": 0,
+    "key": 21,
     "hidden": false,
     "Min Delay": 0,
     "Max Delay": 0,
     "Open Delay": 0,
-    "Mode": "Instant",
+    "Mode": "Normal",
     "Auto Armor": true,
     "Drop Trash": true,
     "Sword Slot": 1,
@@ -384,15 +401,15 @@
     "Throws Slot": 4,
     "Throws Amount": 64,
     "Gapple Slot": 3,
-    "Silent": true,
+    "Silent": false,
     "No KillAura": true,
     "No Scaffold": true
   },
   "InvWalk": {
     "toggled": false,
-    "key": 0,
+    "key": 21,
     "hidden": false,
-    "Mode": "Legit"
+    "Mode": "Vanilla"
   },
   "ItemESP": {
     "toggled": true,
@@ -411,15 +428,15 @@
     "toggled": false,
     "key": 0,
     "hidden": false,
-    "Speed": 2.5,
-    "No Push": true,
-    "Only Ground": true
+    "Speed": 3.0,
+    "No Push": false,
+    "Only Ground": false
   },
   "KeepSprint": {
     "toggled": false,
     "key": 0,
     "hidden": false,
-    "Slow": 0,
+    "Slow": 100,
     "Only Ground": false,
     "Only In Reach": false
   },
@@ -431,7 +448,7 @@
     "Sort Mode": "Health",
     "AutoBlock Mode": "HypixelA",
     "AutoBlock Only Right Click": false,
-    "AutoBlock CPS": 10.0,
+    "AutoBlock CPS": 10,
     "AutoBlock Range": 6.0,
     "Swing Range": 3.5,
     "Attack Range": 3.0,
@@ -444,9 +461,9 @@
     "Through Walls": true,
     "Attack Only Left Click": false,
     "Break AutoBlockIn": true,
-    "Only Weapons": true,
+    "Only Weapons": false,
     "Allow Tools": false,
-    "No Inventory": true,
+    "No Inventory": false,
     "Anti Bot": false,
     "Player": true,
     "Bosses": false,
@@ -454,7 +471,7 @@
     "Animals": false,
     "Golems": false,
     "ClothesMoth": false,
-    "Teams": false
+    "Teams": true
   },
   "FakeLag": {
     "toggled": false,
@@ -487,9 +504,9 @@
     "key": 0,
     "hidden": false,
     "Mode": "Better",
-    "Amount": 20,
-    "Scale": 1.0,
-    "Height": 0.4,
+    "Amount": 16,
+    "Scale": 0.7275862,
+    "Height": -0.027586207,
     "Rounding": 10.0,
     "Auto Scale": true,
     "Background": 25,
@@ -532,20 +549,20 @@
     "hidden": true
   },
   "NoHurtCam": {
-    "toggled": false,
+    "toggled": true,
     "key": 0,
     "hidden": true,
     "Multiplier": 0
   },
   "NoJumpDelay": {
-    "toggled": false,
+    "toggled": true,
     "key": 0,
     "hidden": false,
-    "delay": 3
+    "delay": 0
   },
   "NoRotate": {
-    "toggled": false,
-    "key": 0,
+    "toggled": true,
+    "key": 50,
     "hidden": false
   },
   "NoSlow": {
@@ -589,7 +606,7 @@
     "key": 0,
     "hidden": false,
     "Blur": true,
-    "Blur Strength": 12,
+    "Blur Strength": 15,
     "Bloom": true,
     "Bloom Color Mode": "Custom",
     "Bloom Color Speed": 2.0,
@@ -597,10 +614,10 @@
     "Bloom Second Color": "000000",
     "Bloom Astolfo Offset": 5.0,
     "Bloom Astolfo Index": 107.0,
-    "ArrayList Bloom From Interface": true,
+    "ArrayList Bloom From Interface": false,
     "Flat DynamicIsland Bloom From It Self": true,
     "Bloom Iterations": 2,
-    "Bloom Offset": 2
+    "Bloom Offset": 5
   },
   "PartySpammer": {
     "toggled": false,
@@ -649,7 +666,7 @@
     "toggled": false,
     "key": 33,
     "hidden": false,
-    "Rotations": "Backwards",
+    "Rotations": "Vanilla",
     "Mode": "Telly",
     "Tower": "Telly",
     "Move Fix": "Silent",
@@ -662,23 +679,23 @@
     "Safe Walk": false,
     "Swing": false,
     "Item Spoof": true,
-    "AutoBlockIn Counter": false,
+    "Block Counter": false,
     "Text Shadow": true
   },
   "Scoreboard": {
-    "toggled": false,
+    "toggled": true,
     "key": 0,
     "hidden": false,
     "Hide": false,
-    "Offset X": 0,
-    "Offset Y": 0
+    "Offset X": -851,
+    "Offset Y": -103
   },
   "Session": {
     "toggled": false,
     "key": 0,
     "hidden": false,
     "Offset X": 5,
-    "Offset Y": 5
+    "Offset Y": -7
   },
   "Spammer": {
     "toggled": false,
@@ -710,17 +727,17 @@
     "Fix CCB": true
   },
   "SuperKnockBack": {
-    "toggled": false,
+    "toggled": true,
     "key": 0,
     "hidden": false,
-    "Mode": "Legit",
+    "Mode": "Wtap",
     "Delay": 5.5,
     "Duration": 1.5,
     "Intelligent": false,
     "Only Gound": true
   },
   "TargetESP": {
-    "toggled": false,
+    "toggled": true,
     "key": 0,
     "hidden": false,
     "Mark Mode": "Ghost",
@@ -728,25 +745,27 @@
     "Animation": true,
     "Select Image": false,
     "CircleSpeed": 2.0,
-    "OnlyPlayer": false,
+    "OnlyPlayer": true,
     "ShowHurt": false
   },
   "TargetHUD": {
-    "toggled": false,
+    "toggled": true,
     "key": 0,
     "hidden": true,
-    "Mode": "Exhibition",
+    "Mode": "Astolfo",
     "Color": "Default",
-    "PositionX": "Middle",
-    "PositionY": "Middle",
-    "Scale": 1.0,
-    "OffsetX": 0,
-    "OffsetY": 40,
+    "Position X": "Middle",
+    "Position Y": "Middle",
+    "Offset X": 5,
+    "Offset Y": 153,
+    "Back Ground": 25,
     "Head": true,
+    "Indicator": true,
+    "Outline": false,
     "Animations": true,
-    "Shadow": true,
-    "KaOnly": true,
-    "ChatPreview": false
+    "Text Shadow": true,
+    "Only KillAura": true,
+    "Chat Preview": false
   },
   "TargetStrafe": {
     "toggled": false,
@@ -780,32 +799,61 @@
     "Projectiles": false,
     "Pearls": true
   },
-  "Velocity": {
+  "MusicLyrics": {
     "toggled": true,
-    "key": 0,
+    "key": 36,
     "hidden": false,
-    "mode": "Prediction",
-    "Smart Rotate": true,
-    "Rotate Ticks": 1,
-    "Auto Jump": true,
-    "Reduce2": false,
-    "Reduce2 Factor": 1.0,
-    "Keep Vertical": true,
-    "Attack Reduce": true,
-    "Change": 100,
+    "Align": "Center",
+    "Effect": "Scroll",
+    "SingleLine": false,
+    "Translation": true,
+    "Width": 900,
+    "Height": 150,
+    "Offset X": 0,
+    "Offset Y": 55
+  },
+  "Velocity": {
+    "toggled": false,
+    "key": 19,
+    "hidden": false,
+    "mode": "Mix",
     "Horizontal": 100,
     "Vertical": 100,
     "Explosions Horizontal": 100,
     "Explosions Vertical": 100,
+    "Change": 18,
     "Check Fake": true,
-    "Delay Ticks": 3,
-    "Chance": 100,
+    "Air Delay": true,
+    "Air Delay Ticks": 1,
+    "Delay": true,
+    "Delay Ticks": 1,
+    "Delay Only In Ground": true,
+    "Smart Air Delay": false,
+    "air1": 3,
+    "air2": 3,
+    "air3": 3,
+    "air4": 3,
+    "air5": 3,
+    "air6": 3,
+    "air7": 3,
+    "air8": 3,
+    "air9": 3,
+    "hz1": 0.10558621,
+    "hz2": 0.17386207,
+    "hz3": 0.21482758,
+    "hz4": 0.31724137,
+    "hz5": 0.39917243,
+    "hz6": 0.59717244,
+    "hz7": 0.7746897,
+    "hz8": 0.8156552,
+    "hz9": 0.82931036,
     "Jump Reset": true,
-    "Reduce HurtTime": 10,
-    "Reduce Factor": 0.6,
-    "Blink": true,
-    "Show Blink Ticks": true,
-    "USer": false
+    "Rotate": true,
+    "Rotate Only In Air": false,
+    "Rotate Only In Ground": true,
+    "Auto Move": true,
+    "Rotate Ticks": 3,
+    "Attack Reduce(Hit Select)": false
   },
   "ViewClip": {
     "toggled": false,

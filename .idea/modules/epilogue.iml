@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module version="4">
+  <component name="AdditionalModuleElements">
+    <content url="file://$MODULE_DIR$/../.." dumb="true">
+      <excludeFolder url="file://$MODULE_DIR$/../../run/.mixin.out" />
+      <excludeFolder url="file://$MODULE_DIR$/../../run/config" />
+      <excludeFolder url="file://$MODULE_DIR$/../../run/crash-reports" />
+      <excludeFolder url="file://$MODULE_DIR$/../../run/data" />
+      <excludeFolder url="file://$MODULE_DIR$/../../run/logs" />
+      <excludeFolder url="file://$MODULE_DIR$/../../run/mods" />
+      <excludeFolder url="file://$MODULE_DIR$/../../run/resourcepacks" />
+      <excludeFolder url="file://$MODULE_DIR$/../../run/saves" />
+      <excludeFolder url="file://$MODULE_DIR$/../../run/MusicCache" />
+    </content>
+  </component>
+</module>
