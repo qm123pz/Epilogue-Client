@@ -97,6 +97,11 @@ dependencies {
     "downloadLibs"("org.json:json:20250517")
     "downloadLibs"("com.google.code.gson:gson:2.8.9")
     "downloadLibs"("org.apache.httpcomponents:httpclient:4.5.13")
+    "downloadLibs"("com.jsyn:jsyn:20170815")
+    "downloadLibs"("com.google.zxing:core:3.5.1")
+
+    compileOnly("org.projectlombok:lombok:1.18.32")
+    annotationProcessor("org.projectlombok:lombok:1.18.32")
 
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     shadowImpl(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))

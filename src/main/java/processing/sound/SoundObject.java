@@ -1,0 +1,161 @@
+package processing.sound;
+
+import com.jsyn.ports.UnitInputPort;
+import com.jsyn.unitgen.UnitFilter;
+
+
+/**
+ * For advanced users: common superclass of all processing.sound sources (oscillators,
+ * noise, audio samples and even AudioIn).
+ * @webref SoundObject
+ */
+// Subclasses need to assign the 'amplitude' port, and also initiate a
+// JSynCircuit (which effects can be plugged into) with an appropriate
+// JSynProcessor if they want to support pan/add.
+public abstract class SoundObject {
+
+	// subclasses need to initialise this circuit
+	protected JSynCircuit circuit;
+
+	// all subclasses need to set this amplitude port -- either to the amplitude
+	// port of the circuit, or directly to an amplitude port of their processing.sound unit
+	// TODO replace this with a MixerStereo
+	protected UnitInputPort amplitude;
+
+	protected float amp = 1.0f;
+	protected boolean isPlaying = false;
+
+	protected SoundObject() {
+		processing.sound.Engine.getEngine();
+	}
+
+	private void setAmplitude() {
+		this.amplitude.set(this.amp);
+	}
+
+	/*
+	 * Offset the output of this generator by given value
+	 *
+	 * @param add
+	 *            A value for offsetting the audio signal.
+	 * @deprecated
+	 */
+	public void add(float add) {
+		if (this.circuit.processor == null) {
+			processing.sound.Engine.printError("stereo processing.sound sources do not support adding");
+		} else {
+			this.circuit.processor.add(add);
+		}
+	}
+
+	/**
+	 * Change the amplitude/volume of this processing.sound.
+	 *
+	 * @param amp
+	 *            A float value between 0.0 (complete silence) and 1.0 (full volume)
+	 *            controlling the amplitude/volume of this processing.sound.
+	 * @webref SoundObject
+	 **/
+	public void amp(float amp) {
+		this.amp = amp;
+		this.setAmplitude();
+	}
+
+	/**
+	 * Check if this processing.sound object is currently playing.
+	 *
+	 * @return `true` if this processing.sound object is currently playing, `false` if it is
+	 *         not.
+	 */
+	public boolean isPlaying() {
+		return this.isPlaying;
+	}
+
+	/**
+	 * Move the processing.sound in a stereo panorama.
+	 *
+	 * @param pos
+	 *            The panoramic position of this processing.sound unit as a float from -1.0
+	 *            (left) to 1.0 (right).
+	 * @webref SoundObject
+	 **/
+	public void pan(float pos) {
+		if (this.circuit.processor == null) {
+			processing.sound.Engine.printError("stereo processing.sound sources do not support panning");
+		} else if (processing.sound.Engine.checkPan(pos)) {
+			this.circuit.processor.pan(pos);
+		}
+	}
+
+	/**
+	 * Starts the generator
+	 **/
+	public void play() {
+		// TODO print info message if it's already playing?
+		if (!this.isPlaying) {
+			processing.sound.Engine.getEngine().play(this.circuit);
+			this.setAmplitude();
+			this.isPlaying = true;
+			// TODO rewire effect if one was set previously (before stopping)?
+		}
+	}
+
+	/**
+	 * Stops this processing.sound from playing back.
+	 *
+	 * @webref SoundObject:SoundObject
+	 **/
+	public void stop() {
+		this.isPlaying = false;
+		this.amplitude.set(0);
+		if (this.circuit.effect != null) {
+			this.removeEffect(this.circuit.effect);
+		}
+		// also removes the unit implicitly
+		processing.sound.Engine.getEngine().stop(this.circuit);
+	}
+
+
+	/**
+	 * The 'true' number of underlying channels of this processing.sound. All SoundObjects are put into
+	 * a stereo-pannable wrapper, but for multi-channel purposes, anything that's not a true
+	 * stereo sample should be considered to be mono.
+	 * @see MultiChannel
+	 */
+	public int channels() {
+		return 1;
+	}
+
+	protected void setEffect(processing.sound.Effect<? extends UnitFilter> effect) {
+		if (this.circuit.effect == effect) {
+			processing.sound.Engine.printWarning("this effect is already processing the given processing.sound source");
+		} else {
+			if (this.circuit.effect != null) {
+				this.removeEffect(this.circuit.effect);
+			}
+
+			processing.sound.Engine.getEngine().add(effect.left);
+			processing.sound.Engine.getEngine().add(effect.right);
+			this.circuit.setEffect(effect);
+		}
+	}
+
+	protected void removeEffect(Effect<? extends UnitFilter> effect) {
+		if (this.circuit.effect != effect) {
+			// possibly a previous effect that's being stopped here, ignore call
+			processing.sound.Engine.printError("this effect is not currently processing any signals.");
+
+		} else {
+			this.circuit.removeEffect();
+		}
+	}
+
+	/**
+	 * Gets the <code>JSynCircuit</code> object which encapsulates all the JSyn 
+	 * units (basic processing.sound generator, pan and amplitude) which control the processing.sound
+	 * synthesis of this SoundObject.
+	 */
+	public JSynCircuit getUnitGenerator() {
+		return this.circuit;
+	}
+}

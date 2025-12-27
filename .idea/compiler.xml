@@ -10,6 +10,7 @@
         <option name="outRefMapFile" value="D:\Java\Project\Epilogue-Client\build\classes\java\main\mixins.epilogue.refmap.json" />
         <processorPath useClasspath="false">
           <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.spongepowered/mixin/0.8.5-SNAPSHOT/afd548f754a72df63a853c0cc1d064b6fcf76441/mixin-0.8.5-SNAPSHOT.jar" />
+          <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok/1.18.32/17d46b3e205515e1e8efd3ee4d57ce8018914163/lombok-1.18.32.jar" />
         </processorPath>
         <module name="epilogue.main" />
       </profile>

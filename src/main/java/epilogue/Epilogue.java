@@ -81,6 +81,7 @@ public class Epilogue {
         moduleManager.modules.put(ChestStealer.class, new ChestStealer());
         moduleManager.modules.put(ChestView.class, new ChestView());
         moduleManager.modules.put(ClickGUI.class, new ClickGUI());
+        moduleManager.modules.put(CloudMusicModule.class, new CloudMusicModule());
         moduleManager.modules.put(DynamicIsland.class, new DynamicIsland());
         moduleManager.modules.put(Disabler.class, new Disabler());
         moduleManager.modules.put(Eagle.class, new Eagle());
@@ -130,6 +131,7 @@ public class Epilogue {
         moduleManager.modules.put(TargetStrafe.class, new TargetStrafe());
         moduleManager.modules.put(Tracers.class, new Tracers());
         moduleManager.modules.put(Trajectories.class, new Trajectories());
+        moduleManager.modules.put(MusicLyrics.class, new MusicLyrics());
         moduleManager.modules.put(Velocity.class, new Velocity());
         moduleManager.modules.put(ViewClip.class, new ViewClip());
         moduleManager.modules.put(WaterMark.class, new WaterMark());

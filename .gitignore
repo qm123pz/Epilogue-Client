@@ -1,9 +1,5 @@
 /run/
 /build/
-/.idea/
 /.gradle/
 /.vscode/
 /gradle/
-/gradle.properties/
-/build.gradle.kts/
-/settings.gradle.kts/

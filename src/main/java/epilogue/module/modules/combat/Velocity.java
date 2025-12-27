@@ -28,8 +28,6 @@ public class Velocity extends Module {
     private float[] targetRotation = null;
     private double knockbackX = 0.0;
     private double knockbackZ = 0.0;
-    private boolean prevAuraRotationBlocked = false;
-    private boolean prevAuraAttackBlocked = false;
     private boolean airRotateActive = false;
     private int advancedTimeWindowTicks = 0;
     private int delayTicksLeft = 0;
@@ -98,9 +96,6 @@ public class Velocity extends Module {
             this.rotateTickCounter = 1;
             this.targetRotation = null;
             this.airRotateActive = true;
-            this.prevAuraRotationBlocked = Aura.rotationBlocked;
-            this.prevAuraAttackBlocked = Aura.attackBlocked;
-            Aura.rotationBlocked = true;
         }
     }
 
@@ -119,15 +114,6 @@ public class Velocity extends Module {
         if (!this.airRotateActive || this.rotateTickCounter <= 0 || this.rotateTickCounter > this.mixRotateTicks.getValue()) {
             return;
         }
-
-        Aura aura = (Aura) Epilogue.moduleManager.modules.get(Aura.class);
-        if (aura != null && aura.isEnabled()) {
-            Aura.rotationBlocked = true;
-            Aura.attackBlocked = this.prevAuraAttackBlocked;
-        } else {
-            Aura.rotationBlocked = this.prevAuraRotationBlocked;
-            Aura.attackBlocked = this.prevAuraAttackBlocked;
-        }
     }
 
     private void endRotate() {
@@ -140,12 +126,6 @@ public class Velocity extends Module {
         this.knockbackX = 0.0;
         this.knockbackZ = 0.0;
         this.airRotateActive = false;
-        Aura.rotationBlocked = this.prevAuraRotationBlocked;
-        if (this.isMix() && this.mixAttackReduce.getValue()) {
-            Aura.attackBlocked = false;
-        } else {
-            Aura.attackBlocked = this.prevAuraAttackBlocked;
-        }
     }
 
     private void startDelayedVelocity(int ticks) {

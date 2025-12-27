@@ -8,6 +8,26 @@ import java.awt.Font;
 
 public final class Fonts {
     private static final FontTransformer TRANSFORMER = FontTransformer.getInstance();
+    private static final Font FALLBACK_TINY = firstFont(
+            TRANSFORMER.getFont("MicrosoftYaHei", 30f),
+            TRANSFORMER.getFont("MicrosoftYaHei Bold", 30f)
+    );
+    private static final Font FALLBACK_SMALL = firstFont(
+            TRANSFORMER.getFont("MicrosoftYaHei", 34f),
+            TRANSFORMER.getFont("MicrosoftYaHei Bold", 34f)
+    );
+    private static final Font FALLBACK_MEDIUM = firstFont(
+            TRANSFORMER.getFont("MicrosoftYaHei", 38f),
+            TRANSFORMER.getFont("MicrosoftYaHei Bold", 38f)
+    );
+    private static final Font FALLBACK_HEADING = firstFont(
+            TRANSFORMER.getFont("MicrosoftYaHei Bold", 48f),
+            TRANSFORMER.getFont("MicrosoftYaHei", 48f)
+    );
+    private static final Font FALLBACK_TITLE = firstFont(
+            TRANSFORMER.getFont("MicrosoftYaHei Bold", 60f),
+            TRANSFORMER.getFont("MicrosoftYaHei", 60f)
+    );
     private static final Font TITLE = firstFont(
             TRANSFORMER.getFont("Inter_Bold", 60f)
     );
@@ -64,6 +84,23 @@ public final class Fonts {
 
     public static void draw(Font font, String text, float x, float y, int color) {
         if (font != null) {
+            if (text != null) {
+                for (int i = 0; i < text.length(); i++) {
+                    if (text.charAt(i) > 255) {
+                        Font fallback = font == TITLE ? FALLBACK_TITLE
+                                : font == HEADING ? FALLBACK_HEADING
+                                : font == MEDIUM ? FALLBACK_MEDIUM
+                                : font == SMALL ? FALLBACK_SMALL
+                                : font == TINY ? FALLBACK_TINY
+                                : FALLBACK_TINY;
+                        if (fallback != null) {
+                            CustomFontRenderer.drawString(text, x, y, color, fallback);
+                            return;
+                        }
+                        break;
+                    }
+                }
+            }
             CustomFontRenderer.drawString(text, x, y, color, font);
         } else {
             Minecraft.getMinecraft().fontRendererObj.drawString(text, (int) x, (int) y, color, false);

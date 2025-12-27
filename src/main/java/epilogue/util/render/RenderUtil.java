@@ -198,12 +198,20 @@ public class RenderUtil {
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
         net.minecraft.client.gui.ScaledResolution sr = new net.minecraft.client.gui.ScaledResolution(mc);
         int factor = sr.getScaleFactor();
-        GL11.glScissor((int)(x * factor), (int)((sr.getScaledHeight() - (y + height)) * factor), 
-            (int)(width * factor), (int)(height * factor));
-        glEnable(GL11.GL_SCISSOR_TEST);
+        if (width < 0) width = 0;
+        if (height < 0) height = 0;
+        GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        GL11.glScissor(
+                (int) (x * factor),
+                (int) ((sr.getScaledHeight() - (y + height)) * factor),
+                (int) (width * factor),
+                (int) (height * factor)
+        );
+        GL11.glEnable(GL11.GL_SCISSOR_TEST);
     }
     
     public static void scissorEnd() {
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
+        GlStateManager.colorMask(true, true, true, true);
     }
 }
