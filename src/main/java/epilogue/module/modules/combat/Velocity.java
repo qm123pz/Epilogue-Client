@@ -18,7 +18,6 @@ import net.minecraft.network.play.server.S27PacketExplosion;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.EnumFacing;
-import net.minecraft.world.World;
 import epilogue.enums.DelayModules;
 import epilogue.util.MoveUtil;
 import epilogue.util.ChatUtil;
@@ -28,6 +27,7 @@ import epilogue.events.*;
 import epilogue.management.RotationState;
 import epilogue.module.Module;
 import net.minecraft.item.ItemStack;
+import net.minecraft.world.World;
 
 public class Velocity extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
@@ -53,18 +53,19 @@ public class Velocity extends Module {
     private Entity mixReduceTarget = null;
     private boolean mixReduceNoAttack = true;
 
+    private boolean mixReduceSentC0AThisTick = false;
+
     private boolean mixReduceHadBlock = false;
     private boolean mixReduceRestoreBlock = false;
     private boolean mixReduceAuraAttackBlockedBefore = false;
     private boolean mixReduceAuraSwingBlockedBefore = false;
     private int mixReduceSuppressBlockTicks = 0;
 
-    private boolean mixReduceDbgRayOk = true;
     private boolean mixReduceDbgFall = false;
     private String mixReduceDbgTarget = "-";
     private boolean mixReduceDbgDidAttack = false;
+    private boolean mixReduceDbgDidReduce = false;
     private boolean mixReduceDbgHadBlock = false;
-    private int mixReduceDbgPlannedUnblockTicks = 0;
     private double mixReduceDbgBeforeX = 0.0;
     private double mixReduceDbgBeforeZ = 0.0;
     private double mixReduceDbgAfterX = 0.0;
@@ -136,10 +137,7 @@ public class Velocity extends Module {
     public final BooleanValue mixHitSelect = new BooleanValue("Hit Select", false, () -> this.mode.getValue() == 2);
 
     public final BooleanValue mixReduce = new BooleanValue("Reduce", false, () -> this.mode.getValue() == 2);
-    public final BooleanValue mixReduceRaycast = new BooleanValue("Reduce RayCast", true, () -> this.mode.getValue() == 2 && this.mixReduce.getValue());
-    public final FloatValue mixReduceRange = new FloatValue("Range", 3.0F, 0.0F, 6.0F, () -> this.mode.getValue() == 2 && this.mixReduce.getValue() && this.mixReduceRaycast.getValue());
     public final BooleanValue mixReduceDebug = new BooleanValue("Reduce Debug", true, () -> this.mode.getValue() == 2 && this.mixReduce.getValue());
-    public final IntValue mixReduceUnBlockTicks = new IntValue("UnBlockTicks", 2, 0, 10, () -> this.mode.getValue() == 2 && this.mixReduce.getValue());
 
     public Velocity() {
         super("Velocity", false);
@@ -331,6 +329,11 @@ public class Velocity extends Module {
             return;
         }
 
+        if (this.isMix() && this.mixReduce.getValue() && event.getType() == EventType.SEND && event.getPacket() instanceof C0APacketAnimation) {
+            this.mixReduceSentC0AThisTick = true;
+            return;
+        }
+
         if (event.getType() != EventType.RECEIVE || event.isCancelled()) {
             return;
         }
@@ -351,19 +354,6 @@ public class Velocity extends Module {
                         targetEntity = getNearestPlayerTarget();
                     }
 
-                    if (this.mixReduceRaycast.getValue() && aura != null && aura.target != null && aura.target.getBox() != null) {
-                        AxisAlignedBB box = aura.target.getBox();
-
-                        float yaw = RotationState.isActived() ? RotationState.getSmoothedYaw() : mc.thePlayer.rotationYaw;
-                        float pitch = RotationState.isActived() ? RotationState.getRotationPitch() : mc.thePlayer.rotationPitch;
-
-                        if (epilogue.util.RotationUtil.rayTrace(box, yaw, pitch, this.mixReduceRange.getValue()) == null) {
-                            this.mixReduceTarget = null;
-                            this.mixReduceHasReceivedVelocity = false;
-                            return;
-                        }
-                    }
-
                     this.mixReduceTarget = targetEntity;
 
                     double velocityX = packet.getMotionX() / 8000.0;
@@ -372,12 +362,11 @@ public class Velocity extends Module {
                     this.mixReduceIsFallDamage = velocityX == 0.0 && velocityZ == 0.0 && velocityY < 0.0;
                     this.mixReduceHasReceivedVelocity = true;
 
-                    this.mixReduceDbgRayOk = true;
                     this.mixReduceDbgFall = this.mixReduceIsFallDamage;
                     this.mixReduceDbgTarget = this.mixReduceTarget != null ? this.mixReduceTarget.getName() : "-";
                     this.mixReduceDbgDidAttack = false;
+                    this.mixReduceDbgDidReduce = false;
                     this.mixReduceDbgHadBlock = false;
-                    this.mixReduceDbgPlannedUnblockTicks = 0;
                     this.mixReduceDbgBeforeX = 0.0;
                     this.mixReduceDbgBeforeZ = 0.0;
                     this.mixReduceDbgAfterX = 0.0;
@@ -439,6 +428,10 @@ public class Velocity extends Module {
             return;
         }
 
+        if (event.getType() == EventType.PRE) {
+            this.mixReduceSentC0AThisTick = false;
+        }
+
         if (event.getType() == EventType.POST) {
             if (this.mixReduceRestoreBlock) {
                 if (this.mixReduceSuppressBlockTicks > 0) {
@@ -460,17 +453,17 @@ public class Velocity extends Module {
                 }
 
                 if (this.mixReduceDebug.getValue()) {
-                    String line = "&7[Velocity]&f Reduce "
+                    String line = "&7[Velocity]&b Reduce "
                             + "&8{" 
-                            + "ray=" + (this.mixReduceDbgRayOk ? "ok" : "miss")
-                            + ",fall=" + this.mixReduceDbgFall
-                            + ",atk=" + this.mixReduceDbgDidAttack
-                            + ",blk=" + this.mixReduceDbgHadBlock
-                            + ",t=" + this.mixReduceDbgPlannedUnblockTicks
-                            + "}&f "
-                            + "tar=&b" + this.mixReduceDbgTarget + "&f "
-                            + "vx=" + this.mixReduceDbgBeforeX + "->" + this.mixReduceDbgAfterX + " "
-                            + "vz=" + this.mixReduceDbgBeforeZ + "->" + this.mixReduceDbgAfterZ;
+                            + "&bFall=" + this.mixReduceDbgFall
+                            + "&7, Attack=" + this.mixReduceDbgDidAttack
+                            + "&7, C0A=" + this.mixReduceSentC0AThisTick
+                            + "&7, Reduced=" + this.mixReduceDbgDidReduce
+                            + "&7, Block=" + this.mixReduceDbgHadBlock
+                            + "&8}&f "
+                            + "Target=&b" + this.mixReduceDbgTarget + "&f "
+                            + "VX=&7" + this.mixReduceDbgBeforeX + "&8->&7" + this.mixReduceDbgAfterX + " "
+                            + "VZ=&7" + this.mixReduceDbgBeforeZ + "&8->&7" + this.mixReduceDbgAfterZ;
                     ChatUtil.sendFormatted(line);
                 }
 
@@ -534,32 +527,25 @@ public class Velocity extends Module {
 
                         Epilogue.eventManager.call(new AttackEvent(t));
 
-                        mc.getNetHandler().addToSendQueue(new C0APacketAnimation());
-                        mc.getNetHandler().addToSendQueue(new C02PacketUseEntity(t, C02PacketUseEntity.Action.ATTACK));
-
                         this.mixReduceRestoreBlock = true;
-                        if (this.mixReduceHadBlock) {
-                            int base = Math.max(0, this.mixReduceUnBlockTicks.getValue());
-                            int extra = (aura != null && aura.isEnabled() && aura.shouldAutoBlock()) ? 1 : 0;
-                            this.mixReduceSuppressBlockTicks = base + extra;
-                        } else {
-                            this.mixReduceSuppressBlockTicks = 0;
-                        }
+                        this.mixReduceSuppressBlockTicks = 0;
 
                         this.mixReduceDbgDidAttack = true;
                         this.mixReduceDbgHadBlock = this.mixReduceHadBlock;
-                        this.mixReduceDbgPlannedUnblockTicks = this.mixReduceSuppressBlockTicks;
 
-                        double beforeX = mc.thePlayer.motionX;
-                        double beforeZ = mc.thePlayer.motionZ;
-                        mc.thePlayer.motionX *= 0.6D;
-                        mc.thePlayer.motionZ *= 0.6D;
-                        mc.thePlayer.setSprinting(false);
+                        if (this.mixReduceSentC0AThisTick) {
+                            double beforeX = mc.thePlayer.motionX;
+                            double beforeZ = mc.thePlayer.motionZ;
+                            mc.thePlayer.motionX *= 0.6D;
+                            mc.thePlayer.motionZ *= 0.6D;
+                            mc.thePlayer.setSprinting(false);
 
-                        this.mixReduceDbgBeforeX = beforeX;
-                        this.mixReduceDbgBeforeZ = beforeZ;
-                        this.mixReduceDbgAfterX = mc.thePlayer.motionX;
-                        this.mixReduceDbgAfterZ = mc.thePlayer.motionZ;
+                            this.mixReduceDbgDidReduce = true;
+                            this.mixReduceDbgBeforeX = beforeX;
+                            this.mixReduceDbgBeforeZ = beforeZ;
+                            this.mixReduceDbgAfterX = mc.thePlayer.motionX;
+                            this.mixReduceDbgAfterZ = mc.thePlayer.motionZ;
+                        }
 
                         this.mixReduceHasReceivedVelocity = false;
                     }
@@ -673,6 +659,7 @@ public class Velocity extends Module {
         this.mixReduceRestoreBlock = false;
         this.mixReduceAuraAttackBlockedBefore = false;
         this.mixReduceAuraSwingBlockedBefore = false;
+        this.mixReduceSentC0AThisTick = false;
         this.endRotate();
     }
 
@@ -700,6 +687,7 @@ public class Velocity extends Module {
         }
         this.attackReduceTicksLeft = 0;
         this.attackReduceApplied = false;
+        this.mixReduceSentC0AThisTick = false;
         this.endRotate();
 
         if (Epilogue.delayManager.getDelayModule() == DelayModules.VELOCITY) {

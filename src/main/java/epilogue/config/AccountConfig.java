@@ -94,7 +94,7 @@ public class AccountConfig {
             }
 
             // 解析JSON
-            JsonObject object = JsonParser.parseString(content.toString()).getAsJsonObject();
+            JsonObject object = new JsonParser().parse(content.toString()).getAsJsonObject();
 
             // 加载加密的账户数据
             if (object.has("encryptedAccounts") && object.get("encryptedAccounts").isJsonPrimitive()) {
@@ -106,7 +106,7 @@ public class AccountConfig {
 
                 try {
                     String decryptedJson = MultiLayerEncryptor.decrypt(encryptedData.trim());
-                    JsonObject decryptedObject = JsonParser.parseString(decryptedJson).getAsJsonObject();
+                    JsonObject decryptedObject = new JsonParser().parse(decryptedJson).getAsJsonObject();
                     loadAccountsFromJson(decryptedObject);
                     LOGGER.info("Successfully decrypted " + accounts.size() + " accounts from file");
                 } catch (Exception e) {

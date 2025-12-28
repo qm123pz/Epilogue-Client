@@ -180,7 +180,7 @@ public class Config {
             jsonString = jsonString.substring(1);
         }
 
-        JsonElement element = JsonParser.parseString(jsonString);
+        JsonElement element = new JsonParser().parse(jsonString);
         if (!element.isJsonObject()) {
             throw new JsonSyntaxException("Expected JSON object");
         }
