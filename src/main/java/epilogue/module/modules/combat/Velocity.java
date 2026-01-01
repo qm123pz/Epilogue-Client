@@ -73,6 +73,19 @@ public class Velocity extends Module {
 
     private boolean mixReduceSentC0AThisTick = false;
 
+    private boolean mixTestReducePending = false;
+    private boolean mixTestReduceHitOnGround = false;
+    private boolean mixTestReduceRestoreSprintNextTick = false;
+    private boolean mixTestReduceDbgAttacking = false;
+    private boolean mixTestReduceDbgHitOnGround = false;
+    private boolean mixTestReduceDbgDidJumpReset = false;
+    private boolean mixTestReduceDbgDidReduce = false;
+    private boolean mixTestReduceDbgDidRestoreSprint = false;
+    private double mixTestReduceDbgBeforeX = 0.0;
+    private double mixTestReduceDbgBeforeZ = 0.0;
+    private double mixTestReduceDbgAfterX = 0.0;
+    private double mixTestReduceDbgAfterZ = 0.0;
+
     private EntityPlayer getNearestPlayerTarget() {
         if (mc.theWorld == null || mc.thePlayer == null) {
             return null;
@@ -146,6 +159,9 @@ public class Velocity extends Module {
     public final FloatValue mixReduceRange = new FloatValue("Range", 3.0F, 0.0F, 6.0F, () -> this.mode.getValue() == 2 && this.mixReduce.getValue() && this.mixReduceRaycast.getValue());
     public final BooleanValue mixReduceDebug = new BooleanValue("Reduce Debug", true, () -> this.mode.getValue() == 2 && this.mixReduce.getValue());
     public final IntValue mixReduceUnBlockTicks = new IntValue("UnBlockTicks", 2, 0, 10, () -> this.mode.getValue() == 2 && this.mixReduce.getValue());
+
+    public final BooleanValue mixTestReduce = new BooleanValue("Test Reduce", false, () -> this.mode.getValue() == 2);
+    public final BooleanValue mixTestReduceDebug = new BooleanValue("Test Reduce Debug", true, () -> this.mode.getValue() == 2 && this.mixTestReduce.getValue());
 
     public Velocity() {
         super("Velocity", false);
@@ -262,6 +278,26 @@ public class Velocity extends Module {
             this.allowNext = true;
             this.endRotate();
             return;
+        }
+
+        if (this.isMix() && this.mixTestReduce.getValue() && event.getY() > 0.0) {
+            boolean attacking = Epilogue.playerStateManager != null && Epilogue.playerStateManager.attacking;
+            if (attacking) {
+                this.mixTestReducePending = true;
+                this.mixTestReduceHitOnGround = mc.thePlayer.onGround;
+
+                this.mixTestReduceDbgAttacking = true;
+                this.mixTestReduceDbgHitOnGround = this.mixTestReduceHitOnGround;
+                this.mixTestReduceDbgDidJumpReset = false;
+                this.mixTestReduceDbgDidReduce = false;
+                this.mixTestReduceDbgDidRestoreSprint = false;
+                this.mixTestReduceDbgBeforeX = 0.0;
+                this.mixTestReduceDbgBeforeZ = 0.0;
+                this.mixTestReduceDbgAfterX = 0.0;
+                this.mixTestReduceDbgAfterZ = 0.0;
+            } else {
+                this.mixTestReduceDbgAttacking = false;
+            }
         }
 
         if (this.isMix() && this.mixHitSelect.getValue() && event.getY() > 0.0) {
@@ -453,6 +489,28 @@ public class Velocity extends Module {
         if (event.getType() == EventType.PRE) {
             this.mixReduceSentC0AThisTick = false;
 
+            if (this.isMix() && this.mixTestReduce.getValue() && this.mixTestReducePending && mc.thePlayer.hurtTime == 9) {
+                if (this.mixTestReduceHitOnGround) {
+                    mc.thePlayer.jump();
+                    this.mixTestReduceDbgDidJumpReset = true;
+                }
+
+                double beforeX = mc.thePlayer.motionX;
+                double beforeZ = mc.thePlayer.motionZ;
+                mc.thePlayer.motionX *= 0.6D;
+                mc.thePlayer.motionZ *= 0.6D;
+                mc.thePlayer.setSprinting(false);
+                this.mixTestReduceRestoreSprintNextTick = true;
+
+                this.mixTestReduceDbgDidReduce = true;
+                this.mixTestReduceDbgBeforeX = beforeX;
+                this.mixTestReduceDbgBeforeZ = beforeZ;
+                this.mixTestReduceDbgAfterX = mc.thePlayer.motionX;
+                this.mixTestReduceDbgAfterZ = mc.thePlayer.motionZ;
+
+                this.mixTestReducePending = false;
+            }
+
             if (this.mixReduceAttackWindowTicks > 0) {
                 this.mixReduceAttackWindowTicks--;
             }
@@ -612,15 +670,15 @@ public class Velocity extends Module {
                 if (this.mixReduceDebug.getValue()) {
                     String line = "&7[Velocity]&f Reduce "
                             + "&8{"
-                            + "ray=" + (this.mixReduceDbgRayOk ? "ok" : "miss")
-                            + ",fall=" + this.mixReduceDbgFall
-                            + ",atk=" + this.mixReduceDbgDidAttack
-                            + ",blk=" + this.mixReduceDbgHadBlock
-                            + ",t=" + this.mixReduceDbgPlannedUnblockTicks
+                            + "Raycast = " + (this.mixReduceDbgRayOk ? "Okay" : "Miss")
+                            + ",Fall = " + this.mixReduceDbgFall
+                            + ",Attack = " + this.mixReduceDbgDidAttack
+                            + ",Block = " + this.mixReduceDbgHadBlock
+                            + ",UnBlockTicks = " + this.mixReduceDbgPlannedUnblockTicks
                             + "}&f "
-                            + "tar=&b" + this.mixReduceDbgTarget + "&f "
-                            + "vx=" + this.mixReduceDbgBeforeX + "->" + this.mixReduceDbgAfterX + " "
-                            + "vz=" + this.mixReduceDbgBeforeZ + "->" + this.mixReduceDbgAfterZ;
+                            + "Target = &b" + this.mixReduceDbgTarget + "&f "
+                            + "&o&fMotionX = &e" + this.mixReduceDbgBeforeX + "&7->&e" + this.mixReduceDbgAfterX + " "
+                            + "&o&fMotionZ = &e " + this.mixReduceDbgBeforeZ + "&7->&e" + this.mixReduceDbgAfterZ;
                     ChatUtil.sendFormatted(line);
                 }
 
@@ -637,6 +695,26 @@ public class Velocity extends Module {
                         Aura.swingBlocked = false;
                     }
                     this.attackReduceApplied = false;
+                }
+            }
+
+            if (this.mixTestReduceRestoreSprintNextTick) {
+                mc.thePlayer.setSprinting(true);
+                this.mixTestReduceRestoreSprintNextTick = false;
+                this.mixTestReduceDbgDidRestoreSprint = true;
+
+                if (this.isMix() && this.mixTestReduceDebug.getValue()) {
+                    String line = "&7[Velocity]&f Test Reduce "
+                            + "&8{"
+                            + "Attacking = " + this.mixTestReduceDbgAttacking
+                            + ",HitOnGround = " + this.mixTestReduceDbgHitOnGround
+                            + ",JumpReset = " + this.mixTestReduceDbgDidJumpReset
+                            + ",Reduced = " + this.mixTestReduceDbgDidReduce
+                            + ",RestoreSprint = " + this.mixTestReduceDbgDidRestoreSprint
+                            + "}&f "
+                            + "&o&fMotionX = &e" + this.mixTestReduceDbgBeforeX + "&7->&e" + this.mixTestReduceDbgAfterX + " "
+                            + "&o&fMotionZ = &e " + this.mixTestReduceDbgBeforeZ + "&7->&e" + this.mixTestReduceDbgAfterZ;
+                    ChatUtil.sendFormatted(line);
                 }
             }
         }
@@ -695,6 +773,9 @@ public class Velocity extends Module {
         this.mixReduceSentC0AThisTick = false;
         this.mixReduceAttackWindowTicks = 0;
         this.mixReduceIsFromTargetAttack = false;
+        this.mixTestReducePending = false;
+        this.mixTestReduceHitOnGround = false;
+        this.mixTestReduceRestoreSprintNextTick = false;
         this.endRotate();
     }
 
@@ -717,11 +798,15 @@ public class Velocity extends Module {
         if (this.attackReduceTicksLeft > 0) {
             if (this.attackReduceApplied) {
                 Aura.attackBlocked = false;
+
                 Aura.swingBlocked = false;
             }
         }
         this.attackReduceTicksLeft = 0;
         this.attackReduceApplied = false;
+        this.mixTestReducePending = false;
+        this.mixTestReduceHitOnGround = false;
+        this.mixTestReduceRestoreSprintNextTick = false;
         this.endRotate();
 
         if (Epilogue.delayManager.getDelayModule() == DelayModules.VELOCITY) {
