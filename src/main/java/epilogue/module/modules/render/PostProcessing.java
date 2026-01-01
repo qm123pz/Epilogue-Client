@@ -15,6 +15,8 @@ public class PostProcessing extends Module {
     public final BooleanValue blur = new BooleanValue("Blur", true);
     public final IntValue blurStrength = new IntValue("Blur Strength", 12, 1, 200);
 
+    public final BooleanValue testGlow = new BooleanValue("TestGlow", false);
+
     public final BooleanValue bloom = new BooleanValue("Bloom", false);
     public final ModeValue bloomColorMode = new ModeValue("Bloom Color Mode", 0, new String[]{"Custom", "Dynamic", "Rainbow", "Astolfo", "Fade", "Interface"});
     public final FloatValue bloomColorSpeed = new FloatValue("Bloom Color Speed", 2.0f, 1.0f, 10.0f);
@@ -46,6 +48,10 @@ public class PostProcessing extends Module {
 
     public static boolean isBloomEnabled() {
         return instance != null && instance.isEnabled() && instance.bloom.getValue();
+    }
+
+    public static boolean isTestGlowEnabled() {
+        return instance != null && instance.isEnabled() && instance.testGlow.getValue();
     }
 
     public static int getBloomIterations() {

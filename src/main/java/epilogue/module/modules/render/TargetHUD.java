@@ -948,7 +948,7 @@ public class TargetHUD extends Module {
         RoundedUtil.drawRound(0, 0, width, height, 0, epilogue.util.render.ColorUtil.applyOpacity(new Color(0, 0, 0), 0.4F));
 
         GlStateManager.pushMatrix();
-        GlStateManager.translate(2.0F, 15.0F, 0.0F);
+        GlStateManager.translate(22.0F, 38.0F, 0.0F);
 
         float largestSize = Math.max(target.height, target.width);
         float relativeScale = Math.max(largestSize / 1.8F, 1);
