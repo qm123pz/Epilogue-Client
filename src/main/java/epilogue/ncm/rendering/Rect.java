@@ -1,6 +1,6 @@
-package epilogue.rendering;
+package epilogue.ncm.rendering;
 
-import epilogue.rendering.rendersystem.RenderSystem;
+import epilogue.ncm.rendering.rendersystem.RenderSystem;
 
 public class Rect {
 

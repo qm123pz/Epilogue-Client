@@ -6,7 +6,7 @@ import epilogue.module.Module;
 import epilogue.ncm.LyricLine;
 import epilogue.ncm.MusicLyricCache;
 import epilogue.ncm.music.CloudMusic;
-import epilogue.rendering.StencilClipManager;
+import epilogue.ncm.rendering.StencilClipManager;
 import epilogue.ui.clickgui.menu.Fonts;
 import epilogue.ui.clickgui.menu.render.DrawUtil;
 import epilogue.util.render.RenderUtil;

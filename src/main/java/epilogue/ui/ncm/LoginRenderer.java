@@ -9,12 +9,12 @@ import net.minecraft.client.renderer.texture.TextureManager;
 import epilogue.ncm.OptionsUtil;
 import epilogue.ncm.music.CloudMusic;
 import epilogue.ncm.music.QRCodeGenerator;
-import epilogue.rendering.Image;
-import epilogue.rendering.Rect;
-import epilogue.rendering.animation.Interpolations;
-import epilogue.rendering.rendersystem.RenderSystem;
+import epilogue.ncm.rendering.Image;
+import epilogue.ncm.rendering.Rect;
+import epilogue.ncm.rendering.animation.Interpolations;
+import epilogue.ncm.rendering.rendersystem.RenderSystem;
 
-import static epilogue.rendering.rendersystem.RenderSystem.hexColor;
+import static epilogue.ncm.rendering.rendersystem.RenderSystem.hexColor;
 import static epilogue.util.render.ColorUtil.reAlpha;
 
 public class LoginRenderer {

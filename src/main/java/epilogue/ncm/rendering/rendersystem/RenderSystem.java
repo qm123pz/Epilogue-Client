@@ -1,4 +1,4 @@
-package epilogue.rendering.rendersystem;
+package epilogue.ncm.rendering.rendersystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;

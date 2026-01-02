@@ -1,4 +1,4 @@
-package epilogue.rendering;
+package epilogue.ncm.rendering;
 
 public class RGBA {
 

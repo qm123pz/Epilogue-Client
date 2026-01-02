@@ -1,4 +1,4 @@
-package epilogue.rendering;
+package epilogue.ncm.rendering;
 
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;

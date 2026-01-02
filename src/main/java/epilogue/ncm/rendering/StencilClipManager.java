@@ -1,4 +1,4 @@
-package epilogue.rendering;
+package epilogue.ncm.rendering;
 
 import net.minecraft.client.Minecraft;
 import org.lwjgl.opengl.GL11;

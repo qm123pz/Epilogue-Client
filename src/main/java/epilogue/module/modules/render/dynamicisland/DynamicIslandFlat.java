@@ -20,7 +20,7 @@ import epilogue.util.render.PostProcessing;
 import epilogue.util.render.RoundedUtil;
 import epilogue.util.render.RenderUtil;
 import epilogue.util.shader.BloomShader;
-import epilogue.rendering.StencilClipManager;
+import epilogue.ncm.rendering.StencilClipManager;
 import epilogue.ncm.music.CloudMusic;
 import epilogue.ncm.music.CoverTextureCache;
 import epilogue.ncm.MusicLyricCache;

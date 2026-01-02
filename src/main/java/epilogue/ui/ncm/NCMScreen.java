@@ -8,7 +8,7 @@ import epilogue.ncm.music.dto.Music;
 import epilogue.ncm.music.dto.PlayList;
 import epilogue.ui.clickgui.menu.Fonts;
 import epilogue.ui.clickgui.menu.render.DrawUtil;
-import epilogue.rendering.StencilClipManager;
+import epilogue.ncm.rendering.StencilClipManager;
 import epilogue.util.render.RenderUtil;
 import epilogue.util.render.RoundedUtil;
 import net.minecraft.client.Minecraft;

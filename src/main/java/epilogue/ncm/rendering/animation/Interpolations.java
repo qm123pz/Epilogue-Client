@@ -1,4 +1,4 @@
-package epilogue.rendering.animation;
+package epilogue.ncm.rendering.animation;
 
 public class Interpolations {
 
