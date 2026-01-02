@@ -75,12 +75,12 @@ public class CustomFontRenderer {
     }
     
     private int drawChar(char chr, float x, double y) {
-        int page = chr >> 4;
-        int id = chr & 0xF;
+        int page = (chr >> 8) & 0xFF;
+        int id = chr & 0xFF;
         int xTexCoord = (id & 0xF) * 64;
-        int yTexCoord = (id >> 4) * 64;
+        int yTexCoord = ((id >> 4) & 0xF) * 64;
         int width = charWidth[chr];
-        
+
         GlStateManager.bindTexture(getOrGenerateCharTexture(page));
         GlStateManager.enableTexture2D();
         GlStateManager.enableBlend();
@@ -101,6 +101,9 @@ public class CustomFontRenderer {
     }
     
     private int getOrGenerateCharTexture(int page) {
+        if (page < 0 || page >= textures.length) {
+            return 0;
+        }
         if (textures[page] == -1)
             return textures[page] = generateCharTexture(page);
         return textures[page];
@@ -108,7 +111,7 @@ public class CustomFontRenderer {
     
     private int generateCharTexture(int page) {
         int textureId = GL11.glGenTextures();
-        int offset = page << 4;
+        int offset = page << 8;
 
         BufferedImage img = new BufferedImage(textureWidth, textureHeight, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = (Graphics2D) img.getGraphics();

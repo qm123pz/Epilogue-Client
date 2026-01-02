@@ -20,6 +20,12 @@ import epilogue.util.render.PostProcessing;
 import epilogue.util.render.RoundedUtil;
 import epilogue.util.render.RenderUtil;
 import epilogue.util.shader.BloomShader;
+import epilogue.rendering.StencilClipManager;
+import epilogue.ncm.music.CloudMusic;
+import epilogue.ncm.music.CoverTextureCache;
+import epilogue.ncm.MusicLyricCache;
+import net.minecraft.util.ResourceLocation;
+import epilogue.util.render.ColorUtil;
 
 import java.awt.Color;
 import java.awt.Font;
@@ -55,7 +61,60 @@ public class DynamicIslandFlat {
     private boolean clickGuiInited = false;
     private float clickGuiMix = 0.0f;
 
+    private boolean musicActive = false;
+    private long lastMusicSongId = -1;
+    private String cachedMusicTitle = "";
+    private net.minecraft.util.ResourceLocation cachedCoverLoc = null;
+
+    private final MusicLyricCache lyricCache = new MusicLyricCache();
+
+    private final ResourceLocation ncmLogoLoc = new ResourceLocation("epilogue/texture/ncm/ncmlogo.png");
+
+    private String getCurrentLyricText() {
+        return lyricCache.getText();
+    }
+
     public DynamicIslandFlat() {
+    }
+
+    private void updateMusicState() {
+        musicActive = CloudMusic.player != null && CloudMusic.currentlyPlaying != null;
+
+        if (!musicActive) {
+            lastMusicSongId = -1;
+            cachedMusicTitle = "";
+            cachedCoverLoc = null;
+            lyricCache.reset();
+            return;
+        }
+
+        long songId;
+        try {
+            songId = CloudMusic.currentlyPlaying.getId();
+        } catch (Throwable t) {
+            songId = -1;
+        }
+
+        if (songId != lastMusicSongId) {
+            lastMusicSongId = songId;
+            try {
+                cachedMusicTitle = CloudMusic.currentlyPlaying.getName();
+            } catch (Throwable t) {
+                cachedMusicTitle = "";
+            }
+            try {
+                cachedCoverLoc = CoverTextureCache.getOrRequest(CloudMusic.currentlyPlaying.getCoverUrl(64), 64);
+            } catch (Throwable t) {
+                cachedCoverLoc = null;
+            }
+        } else {
+            try {
+                if (cachedCoverLoc == null && CloudMusic.currentlyPlaying != null) {
+                    cachedCoverLoc = CoverTextureCache.getOrRequest(CloudMusic.currentlyPlaying.getCoverUrl(64), 64);
+                }
+            } catch (Throwable ignored) {
+            }
+        }
     }
 
     @EventTarget
@@ -67,6 +126,8 @@ public class DynamicIslandFlat {
         }
 
         ScaledResolution sr = new ScaledResolution(mc);
+
+        updateMusicState();
 
         boolean embeddedClickGui = mc.currentScreen instanceof MenuClickGui && ((MenuClickGui) mc.currentScreen).isEmbeddedInDynamicIsland();
         float targetClickGui = 0.0f;
@@ -88,6 +149,8 @@ public class DynamicIslandFlat {
         String timeText = new SimpleDateFormat("HH:mm").format(new Date());
         String fpsText = "FPS " + Minecraft.getDebugFPS();
 
+        String musicIconText = "M";
+
         float paddingX = 10f;
         float paddingY = 6f;
         float radius = 24f;
@@ -104,6 +167,13 @@ public class DynamicIslandFlat {
 
         Scaffold scaffoldModule = (Scaffold) Epilogue.moduleManager.getModule("Scaffold");
         boolean scaffoldActive = scaffoldModule != null && scaffoldModule.isEnabled();
+
+        boolean musicUiActive = musicActive && clickGuiMix <= 0.0f;
+        if (musicUiActive) {
+            float iconW = CustomFontRenderer.getStringWidth(musicIconText, font) + paddingX * 2f;
+            w1 = iconW;
+            w3 = iconW;
+        }
 
         long nowMs = System.currentTimeMillis();
         float dt;
@@ -157,7 +227,19 @@ public class DynamicIslandFlat {
         String statusText = showToggle ? (latchedEnabled ? " Enabled" : " Disabled") : "";
 
         float targetW;
-        if (showToggle) {
+        if (musicUiActive && !showToggle) {
+            if (scaffoldMix > 0.0f) {
+                targetW = CustomFontRenderer.getStringWidth(middleTextClient, font) + paddingX * 2f;
+            } else {
+                String title = cachedMusicTitle == null ? "" : cachedMusicTitle;
+                String sep = " - ";
+                float clientNameW = CustomFontRenderer.getStringWidth(Epilogue.clientName, font);
+                float sepW = CustomFontRenderer.getStringWidth(sep, font);
+                float titleW = CustomFontRenderer.getStringWidth(title, font);
+                float lyricW = lyricCache.getWidth(font);
+                targetW = clientNameW + sepW + titleW + sepW + lyricW + paddingX * 2f + 10f;
+            }
+        } else if (showToggle) {
             targetW = CustomFontRenderer.getStringWidth(iconText + moduleWord + moduleName + statusText, font) + paddingX * 2f;
         } else {
             targetW = CustomFontRenderer.getStringWidth(middleTextClient, font) + paddingX * 2f;
@@ -189,6 +271,13 @@ public class DynamicIslandFlat {
         float x2 = centerX - midW / 2f;
         float x1 = centerX - sideSpacingFromCenter - w1;
         float x3 = centerX + sideSpacingFromCenter;
+
+        float sideGap = sideSpacingFromCenter - (midW / 2f);
+        if (sideGap < 10f) sideGap = 10f;
+        if (musicUiActive) {
+            x1 = x2 - sideGap - w1;
+            x3 = x2 + midW + sideGap;
+        }
 
         float targetScaffold = (clickGuiMix > 0.0f) ? 0.0f : (scaffoldActive ? 1.0f : 0.0f);
         float kScaffold = 10.0f;
@@ -273,12 +362,11 @@ public class DynamicIslandFlat {
         float clickDown = clickTargetH - h;
         if (clickDown < 0.0f) clickDown = 0.0f;
         float downH = h + clickDown * expandPhase;
-        float downRadius = mergeRadius;
 
         Framebuffer bloomBuffer = PostProcessing.beginBloom();
         if (bloomBuffer != null) {
             if (splitMix < 0.999f || clickGuiMix > 0.001f) {
-                RenderUtil.drawRoundedRect(mergeX, y, mergeW, downH, downRadius, bloomColor);
+                RenderUtil.drawRoundedRect(mergeX, y, mergeW, downH, mergeRadius, bloomColor);
             }
             if (splitMix > 0.001f) {
                 RenderUtil.drawRoundedRect(x1, y, w1, h, radius, bloomColor);
@@ -293,8 +381,8 @@ public class DynamicIslandFlat {
             if (a < 0) a = 0;
             if (a > 120) a = 120;
             Color bgA = new Color(0, 0, 0, a);
-            PostProcessing.drawBlur(mergeX, y, mergeX + mergeW, y + downH, () -> () -> RenderUtil.drawRoundedRect(mergeX, y, mergeW, downH, downRadius, -1));
-            RenderUtil.drawRoundedRect(mergeX, y, mergeW, downH, downRadius, bgA);
+            PostProcessing.drawBlur(mergeX, y, mergeX + mergeW, y + downH, () -> () -> RenderUtil.drawRoundedRect(mergeX, y, mergeW, downH, mergeRadius, -1));
+            RenderUtil.drawRoundedRect(mergeX, y, mergeW, downH, mergeRadius, bgA);
         }
 
         if (splitMix > 0.001f) {
@@ -302,13 +390,17 @@ public class DynamicIslandFlat {
             Color bgA = new Color(0, 0, 0, a);
             Color bgMidA = new Color(0, 0, 0, (int) (bgMid.getAlpha() * splitMix));
 
-            PostProcessing.drawBlur(x1, y, x1 + w1, y + h, () -> () -> RenderUtil.drawRoundedRect(x1, y, w1, h, radius, -1));
+            float finalW = w1;
+            float finalX1 = x1;
+            PostProcessing.drawBlur(x1, y, x1 + w1, y + h, () -> () -> RenderUtil.drawRoundedRect(finalX1, y, finalW, h, radius, -1));
             RenderUtil.drawRoundedRect(x1, y, w1, h, radius, bgA);
 
             PostProcessing.drawBlur(bgX2, y, bgX2 + bgW2, y + h, () -> () -> RenderUtil.drawRoundedRect(bgX2, y, bgW2, h, radius, -1));
             RenderUtil.drawRoundedRect(bgX2, y, bgW2, h, radius, bgMidA);
 
-            PostProcessing.drawBlur(x3, y, x3 + w3, y + h, () -> () -> RenderUtil.drawRoundedRect(x3, y, w3, h, radius, -1));
+            float finalW1 = w3;
+            float finalX = x3;
+            PostProcessing.drawBlur(x3, y, x3 + w3, y + h, () -> () -> RenderUtil.drawRoundedRect(finalX, y, finalW1, h, radius, -1));
             RenderUtil.drawRoundedRect(x3, y, w3, h, radius, bgA);
         }
 
@@ -321,7 +413,35 @@ public class DynamicIslandFlat {
         float timeTextX = x1 + paddingX;
         float fpsTextX = x3 + paddingX;
         if (normalTextAlpha > 0.01f) {
-            CustomFontRenderer.drawString(timeText, timeTextX, textY, whiteNormal, font);
+            if (musicUiActive) {
+                float coverSize = 14f;
+                float iconX = x1 + (w1 - coverSize) / 2f;
+                float iconY = y + (h - coverSize) / 2f;
+                float round = 4f;
+
+                if (cachedCoverLoc != null) {
+                    net.minecraft.client.renderer.texture.ITextureObject tex = Minecraft.getMinecraft().getTextureManager().getTexture(cachedCoverLoc);
+                    if (tex != null) {
+                        StencilClipManager.beginClip(() -> RenderUtil.drawRoundedRect(iconX, iconY, coverSize, coverSize, round, -1));
+
+                        GlStateManager.pushMatrix();
+                        GlStateManager.enableBlend();
+                        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+                        Minecraft.getMinecraft().getTextureManager().bindTexture(cachedCoverLoc);
+                        net.minecraft.client.gui.Gui.drawScaledCustomSizeModalRect((int) iconX, (int) iconY, 0f, 0f, 64, 64, (int) coverSize, (int) coverSize, 64f, 64f);
+                        GlStateManager.popMatrix();
+                        GlStateManager.disableBlend();
+
+                        StencilClipManager.endClip();
+                    } else {
+                        CustomFontRenderer.drawString(musicIconText, timeTextX, textY, whiteNormal, font);
+                    }
+                } else {
+                    CustomFontRenderer.drawString(musicIconText, timeTextX, textY, whiteNormal, font);
+                }
+            } else {
+                CustomFontRenderer.drawString(timeText, timeTextX, textY, whiteNormal, font);
+            }
         }
 
         float midX = x2 + paddingX;
@@ -371,16 +491,70 @@ public class DynamicIslandFlat {
         if (!showToggle && normalTextAlpha > 0.01f) {
             int w = new Color(255, 255, 255, (int) (255 * normalTextAlpha)).getRGB();
             int g = new Color(128, 255, 149, (int) (255 * normalTextAlpha)).getRGB();
-            CustomFontRenderer.drawString(Epilogue.clientName, midX, textY, w, font);
-            float namePartW = CustomFontRenderer.getStringWidth(Epilogue.clientName, font);
-            CustomFontRenderer.drawString(Epilogue.clientVersion, midX + namePartW, textY, g, font);
+
+            if (musicUiActive) {
+                String title = cachedMusicTitle == null ? "" : cachedMusicTitle;
+                String lyric = getCurrentLyricText();
+                String sep = " - ";
+
+                float cx = midX;
+                epilogue.module.modules.render.Interface ui = (epilogue.module.modules.render.Interface) Epilogue.moduleManager.getModule("Interface");
+                String cn = Epilogue.clientName;
+                int alpha255 = (int) (255 * normalTextAlpha);
+                if (ui != null && cn != null && !cn.isEmpty()) {
+                    float charX = cx;
+                    for (int i = 0; i < cn.length(); i++) {
+                        String ch = String.valueOf(cn.charAt(i));
+                        int c = ui.color(i);
+                        c = ColorUtil.swapAlpha(c, alpha255);
+                        CustomFontRenderer.drawString(ch, charX, textY, c, font);
+                        charX += CustomFontRenderer.getStringWidth(ch, font);
+                    }
+                    cx = charX;
+                } else {
+                    CustomFontRenderer.drawString(cn, cx, textY, w, font);
+                    cx += CustomFontRenderer.getStringWidth(cn, font);
+                }
+
+                CustomFontRenderer.drawString(sep, cx, textY, w, font);
+                cx += CustomFontRenderer.getStringWidth(sep, font);
+
+                CustomFontRenderer.drawString(title, cx, textY, g, font);
+                cx += CustomFontRenderer.getStringWidth(title, font);
+
+                CustomFontRenderer.drawString(sep, cx, textY, w, font);
+                cx += CustomFontRenderer.getStringWidth(sep, font);
+
+                CustomFontRenderer.drawString(lyric, cx, textY, w, font);
+            } else {
+                CustomFontRenderer.drawString(Epilogue.clientName, midX, textY, w, font);
+                float namePartW = CustomFontRenderer.getStringWidth(Epilogue.clientName, font);
+                CustomFontRenderer.drawString(Epilogue.clientVersion, midX + namePartW, textY, g, font);
+            }
         }
 
         GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
         GlStateManager.popMatrix();
 
         if (normalTextAlpha > 0.01f) {
-            CustomFontRenderer.drawString(fpsText, fpsTextX, textY, whiteNormal, font);
+            if (musicUiActive) {
+                float logoSize = 14f;
+                float logoX = x3 + (w3 - logoSize) / 2f;
+                float logoY = y + (h - logoSize) / 2f;
+                Minecraft.getMinecraft().getTextureManager().bindTexture(ncmLogoLoc);
+                net.minecraft.client.renderer.texture.ITextureObject tex = Minecraft.getMinecraft().getTextureManager().getTexture(ncmLogoLoc);
+                if (tex != null) {
+                    GlStateManager.pushMatrix();
+                    GlStateManager.enableBlend();
+                    GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+                    Minecraft.getMinecraft().getTextureManager().bindTexture(ncmLogoLoc);
+                    net.minecraft.client.gui.Gui.drawScaledCustomSizeModalRect((int) logoX, (int) logoY, 0f, 0f, 474, 444, (int) logoSize, (int) logoSize, 474f, 444f);
+                    GlStateManager.popMatrix();
+                    GlStateManager.disableBlend();
+                }
+            } else {
+                CustomFontRenderer.drawString(fpsText, fpsTextX, textY, whiteNormal, font);
+            }
         }
         GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
 
@@ -455,13 +629,8 @@ public class DynamicIslandFlat {
                 RenderUtil.scissorEnd();
             }
         }
-
         if (embeddedClickGui) {
-            float clipX = mergeX;
-            float clipY = y;
-            float clipW = mergeW;
-            float clipH = downH;
-            ((MenuClickGui) mc.currentScreen).setExternalClip((int) clipX, (int) clipY, (int) clipW, (int) clipH);
+            ((MenuClickGui) mc.currentScreen).setExternalClip((int) mergeX, (int) y, (int) mergeW, (int) downH);
         }
     }
 }

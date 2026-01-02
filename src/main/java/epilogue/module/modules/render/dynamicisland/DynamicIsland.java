@@ -27,6 +27,10 @@ import epilogue.ui.command.CommandInterface;
 import epilogue.ui.clickgui.menu.MenuClickGui;
 import epilogue.ui.clickgui.dropdown.DropdownClickGui;
 import epilogue.events.KeyEvent;
+import epilogue.ncm.LyricLine;
+import epilogue.ncm.music.CloudMusic;
+import epilogue.ncm.music.CoverTextureCache;
+import epilogue.ncm.MusicLyricCache;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
@@ -125,6 +129,13 @@ public class DynamicIsland extends Module {
     private int cachedPing = 0;
     private long lastServerInfoUpdate = 0;
     private static final long SERVER_INFO_UPDATE_INTERVAL = 1000;
+
+    private boolean musicActive = false;
+    private long lastMusicSongId = -1;
+    private String cachedMusicTitle = "";
+    private net.minecraft.util.ResourceLocation cachedCoverLoc = null;
+
+    private final MusicLyricCache lyricCache = new MusicLyricCache();
 
     //神秘。
     private final String[] islandText = new String[]{
@@ -225,6 +236,8 @@ public class DynamicIsland extends Module {
 
         ScaledResolution sr = new ScaledResolution(mc);
         buildDisplayText();
+
+        updateMusicState();
 
         List<Notification> activeNotifications = NotificationManager.getInstance().getActiveNotifications();
         boolean hasNotifications = !activeNotifications.isEmpty() && showNotifications.getValue() && !clickGuiOpen;
@@ -328,8 +341,8 @@ public class DynamicIsland extends Module {
                 float scale = 0.58f;
 
                 FontTransformer transformer = FontTransformer.getInstance();
-                Font mainFont = transformer.getFont("MicrosoftYaHei", 50);
-                Font islandTextFont = transformer.getFont("MicrosoftYaHei", 38);
+                Font mainFont = transformer.getFont(musicActive ? "OpenSansSemiBold" : "MicrosoftYaHei", musicActive ? 44 : 50);
+                Font islandTextFont = transformer.getFont(musicActive ? "MicrosoftYaHei" : "MicrosoftYaHei", musicActive ? 36 : 38);
                 Font contentFont = transformer.getFont("MicrosoftYaHei", 40);
 
                 java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("M/d");
@@ -348,15 +361,31 @@ public class DynamicIsland extends Module {
                     minLine2Width = line2BaseWidth;
                 }
 
-                String currentText = islandText[currentTextIndex];
+                String currentText = musicActive ? getCurrentLyricText() : islandText[currentTextIndex];
 
-                float nightskyWidth = CustomFontRenderer.getStringWidth("Epilogue", mainFont);
+                float nightskyWidth;
+                if (musicActive) {
+                    float iconW = 26f;
+                    float gapW = 8f;
+                    float titleW = cachedMusicTitle == null ? 0f : CustomFontRenderer.getStringWidth(cachedMusicTitle, mainFont);
+                    nightskyWidth = iconW + gapW + titleW;
+                } else {
+                    nightskyWidth = CustomFontRenderer.getStringWidth("Epilogue", mainFont);
+                }
                 float currentTextWidth = CustomFontRenderer.getStringWidth(currentText, islandTextFont);
+                if (musicActive) {
+                    currentTextWidth = Math.max(currentTextWidth, line2BaseWidth / scale);
+                }
 
                 float line1BaseWidth = nightskyWidth + 10;
                 float line1TotalWidth = (line1BaseWidth + currentTextWidth) * scale;
 
                 float requiredWidth = line1TotalWidth + 80 * scale;
+                if (musicActive) {
+                    requiredWidth += currentTextWidth * 0.25f * scale;
+                }
+                float maxWidth = sr.getScaledWidth() * 0.90f;
+                requiredWidth = Math.min(requiredWidth, maxWidth);
 
                 if (currentDisplayWidth == 0.0f) {
                     currentDisplayWidth = requiredWidth;
@@ -403,6 +432,11 @@ public class DynamicIsland extends Module {
     }
 
     private void updateTextRotation(float deltaTime) {
+        if (musicActive) {
+            textAlpha = 1.0f;
+            textFadingOut = false;
+            return;
+        }
         long currentTime = System.currentTimeMillis();
 
         if (currentTime - lastTextChangeTime >= TEXT_CHANGE_INTERVAL) {
@@ -661,8 +695,8 @@ public class DynamicIsland extends Module {
                 float anticipationProgress = anticipationElapsed / anticipationDuration.getValue();
                 float anticipationScale = 1.0f - anticipationAmount.getValue() * applyEasing(anticipationProgress, easingType.getModeString());
 
-                double centerX = (currentWidth + targetWidth) / 2;
-                double centerY = (currentHeight + targetHeight) / 2;
+                double centerX = (currentWidth + targetWidth) / 2.0;
+                double centerY = (currentHeight + targetHeight) / 2.0;
 
                 currentWidth = centerX + (currentWidth - centerX) * anticipationScale;
                 currentHeight = centerY + (currentHeight - centerY) * anticipationScale;
@@ -1134,7 +1168,7 @@ public class DynamicIsland extends Module {
         
         String serverInfo = getServerIP();
         String clientInfo = "Epilogue";
-        String pingInfo = "Ping: " + (mc.getCurrentServerData() != null ? mc.getCurrentServerData().pingToServer + "ms" : "0ms");
+        String pingInfo = "Ping: " + getPing() + "ms";
         
         Nick nick = (Nick) Epilogue.moduleManager.modules.get(Nick.class);
         if (nick != null && nick.isEnabled()) {
@@ -1310,8 +1344,7 @@ public class DynamicIsland extends Module {
             return new Color(255, 85, 85);
         }
     }
-    
-    
+
     private String getServerIP() {
         long currentTime = System.currentTimeMillis();
         if (currentTime - lastServerInfoUpdate > SERVER_INFO_UPDATE_INTERVAL) {
@@ -1320,25 +1353,6 @@ public class DynamicIsland extends Module {
         }
         return cachedServerIP;
     }
-
-    private void updateCachedServerInfo() {
-    if (mc.getCurrentServerData() != null) {
-        if (GetIPUtil.containsPattern("us-test")) {
-            cachedServerIP = "hypixel.net";
-        } else if (GetIPUtil.containsPattern(".de")) {
-            cachedServerIP = "NyaProxy";
-        } else if(GetIPUtil.containsPattern(".us.")) {
-            cachedServerIP = "hypixel.net";
-        }
-        else {
-            cachedServerIP = mc.getCurrentServerData().serverIP;
-        }
-        cachedPing = (int) mc.getCurrentServerData().pingToServer;
-    } else {
-        cachedServerIP = "Singleplayer";
-        cachedPing = 0;
-    }
-}
 
     private void drawChestInterface(float x, float y, float width, float height) {
         FontTransformer transformer = FontTransformer.getInstance();
@@ -1408,6 +1422,68 @@ public class DynamicIsland extends Module {
         CustomFontRenderer.drawStringWithShadow(stealingText, textX, textY, 0x888888, otherFont);
     }
 
+    private void updateMusicState() {
+        musicActive = CloudMusic.player != null && CloudMusic.currentlyPlaying != null;
+
+        if (!musicActive) {
+            lastMusicSongId = -1;
+            cachedMusicTitle = "";
+            cachedCoverLoc = null;
+            lyricCache.reset();
+            return;
+        }
+
+        long songId;
+        try {
+            songId = CloudMusic.currentlyPlaying.getId();
+        } catch (Throwable t) {
+            songId = -1;
+        }
+
+        if (songId != lastMusicSongId) {
+            lastMusicSongId = songId;
+            try {
+                cachedMusicTitle = CloudMusic.currentlyPlaying.getName();
+            } catch (Throwable t) {
+                cachedMusicTitle = "";
+            }
+            try {
+                cachedCoverLoc = CoverTextureCache.getOrRequest(CloudMusic.currentlyPlaying.getCoverUrl(64), 64);
+            } catch (Throwable t) {
+                cachedCoverLoc = null;
+            }
+        } else {
+            try {
+                if (cachedCoverLoc == null && CloudMusic.currentlyPlaying != null) {
+                    cachedCoverLoc = CoverTextureCache.getOrRequest(CloudMusic.currentlyPlaying.getCoverUrl(64), 64);
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+    }
+
+    private String getCurrentLyricText() {
+        return lyricCache.getText();
+    }
+
+    private void updateCachedServerInfo() {
+        if (mc.getCurrentServerData() != null) {
+            if (GetIPUtil.containsPattern("us-test")) {
+                cachedServerIP = "hypixel.net";
+            } else if (GetIPUtil.containsPattern(".de")) {
+                cachedServerIP = "NyaProxy";
+            } else if(GetIPUtil.containsPattern(".us.")) {
+                cachedServerIP = "hypixel.net";
+            } else {
+                cachedServerIP = mc.getCurrentServerData().serverIP;
+            }
+            cachedPing = (int) mc.getCurrentServerData().pingToServer;
+        } else {
+            cachedServerIP = "Singleplayer";
+            cachedPing = 0;
+        }
+    }
+
     private void drawMainInterface(float x, float y, float width) {
         String serverIP = getServerIP();
         int ping = getPing();
@@ -1416,9 +1492,6 @@ public class DynamicIsland extends Module {
         float scale = 0.7f;
         float padding = 8;
 
-        epilogue.module.modules.render.Interface interfaceModule =
-            (epilogue.module.modules.render.Interface) Epilogue.moduleManager.getModule("Interface");
-        
         FontTransformer transformer = FontTransformer.getInstance();
         Font mainFont = transformer.getFont("MicrosoftYaHei", 60);
         Font islandTextFont = transformer.getFont("MicrosoftYaHei", 46);
@@ -1428,7 +1501,7 @@ public class DynamicIsland extends Module {
         java.text.SimpleDateFormat weekFormat = new java.text.SimpleDateFormat("EEEE", java.util.Locale.ENGLISH);
         java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("HH:mm");
         java.util.Date now = new java.util.Date();
-        
+
         String dateStr = dateFormat.format(now);
         String weekStr = weekFormat.format(now);
         String timeStr = timeFormat.format(now);
@@ -1438,22 +1511,60 @@ public class DynamicIsland extends Module {
 
         float scaledX = (x + padding) / scale;
         float scaledY = (y + padding) / scale;
-        
+
         int mainFontHeight = CustomFontRenderer.getFontHeight(mainFont);
         float lineSpacing = 4;
 
-        FontTransformer cheriTransformer = FontTransformer.getInstance();
-        Font WaterMarkFont = cheriTransformer.getFont("SuperJoyful", 60);
-        drawNightSkyTitle(scaledX, scaledY, WaterMarkFont);
-        float textX = scaledX + CustomFontRenderer.getStringWidth("Epilogue", WaterMarkFont) + 10;
-        
-        String displayText = islandText[currentTextIndex];
-        int textColor = (int)(255 * textAlpha) << 24 | 0xFFFFFF;
-        CustomFontRenderer.drawStringWithShadow(displayText, textX, scaledY, textColor, islandTextFont);
-        
+        Font WaterMarkFont = FontTransformer.getInstance().getFont("SuperJoyful", 60);
+
+        if (musicActive) {
+            Font musicTitleFont = transformer.getFont("MicrosoftYaHei", 51);
+            Font lyricFont = transformer.getFont("MicrosoftYaHei", 44);
+
+            float coverSize = 26f;
+            float coverRadius = 6f;
+            float gap = 8f;
+
+            float coverX = scaledX;
+            float coverY = scaledY - 4f;
+
+            if (cachedCoverLoc != null) {
+                net.minecraft.client.renderer.texture.ITextureObject tex = Minecraft.getMinecraft().getTextureManager().getTexture(cachedCoverLoc);
+                if (tex != null) {
+                    GlStateManager.pushMatrix();
+                    GlStateManager.enableBlend();
+                    GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+                    Minecraft.getMinecraft().getTextureManager().bindTexture(cachedCoverLoc);
+                    net.minecraft.client.gui.Gui.drawScaledCustomSizeModalRect((int) coverX, (int) coverY, 0f, 0f, 64, 64, (int) coverSize, (int) coverSize, 64f, 64f);
+                    GlStateManager.popMatrix();
+                    GlStateManager.disableBlend();
+                } else {
+                    epilogue.util.render.RenderUtil.drawRoundedRect(coverX, coverY, coverSize, coverSize, coverRadius, new Color(40, 40, 40, 255));
+                }
+            } else {
+                epilogue.util.render.RenderUtil.drawRoundedRect(coverX, coverY, coverSize, coverSize, coverRadius, new Color(40, 40, 40, 255));
+            }
+
+            float titleX = coverX + coverSize + gap;
+            String title = cachedMusicTitle == null ? "" : cachedMusicTitle;
+            CustomFontRenderer.drawStringWithShadow(title, titleX, scaledY + 1f, 0xFFFFFF, musicTitleFont);
+
+            float textX = titleX + CustomFontRenderer.getStringWidth(title, musicTitleFont) + 10f;
+            String displayText = getCurrentLyricText();
+            int textColor = (int) (255 * textAlpha) << 24 | 0xFFFFFF;
+            CustomFontRenderer.drawStringWithShadow(displayText, textX, scaledY + 3f, textColor, lyricFont);
+        } else {
+            drawNightSkyTitle(scaledX, scaledY, WaterMarkFont);
+            float textX = scaledX + CustomFontRenderer.getStringWidth("Epilogue", WaterMarkFont) + 10;
+            String displayText = islandText[currentTextIndex];
+
+            int textColor = (int) (255 * textAlpha) << 24 | 0xFFFFFF;
+            CustomFontRenderer.drawStringWithShadow(displayText, textX, scaledY, textColor, islandTextFont);
+        }
+
         scaledY += mainFontHeight + lineSpacing;
-        
-        float availableWidth = (float)((width / scale) - padding * 3.5);
+
+        float availableWidth = (float) ((width / scale) - padding * 3.5);
 
         String[] line2Parts = {dateStr, weekStr, timeStr, ping + "ms to " + serverIP, fps + " FPS"};
         float[] partWidths = new float[line2Parts.length];
@@ -1462,11 +1573,11 @@ public class DynamicIsland extends Module {
             partWidths[i] = CustomFontRenderer.getStringWidth(line2Parts[i], contentFont);
             totalBaseWidth += partWidths[i];
         }
-        
+
         float minSpacing = textSpacing;
         float totalSpacing = availableWidth - totalBaseWidth;
         float dynamicSpacing = Math.max(minSpacing, totalSpacing / (line2Parts.length - 1));
-        
+
         float currentX = scaledX;
         for (int i = 0; i < line2Parts.length; i++) {
             int color = 0xFFFFFF;

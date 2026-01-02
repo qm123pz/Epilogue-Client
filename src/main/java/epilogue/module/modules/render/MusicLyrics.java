@@ -4,6 +4,7 @@ import epilogue.event.EventTarget;
 import epilogue.events.Render2DEvent;
 import epilogue.module.Module;
 import epilogue.ncm.LyricLine;
+import epilogue.ncm.MusicLyricCache;
 import epilogue.ncm.music.CloudMusic;
 import epilogue.rendering.StencilClipManager;
 import epilogue.ui.clickgui.menu.Fonts;
@@ -34,6 +35,8 @@ public class MusicLyrics extends Module {
     private double scrollOffset = 0;
     private LyricLine currentDisplaying = null;
 
+    private final MusicLyricCache lyricCache = new MusicLyricCache();
+
     private static final double HIGHLIGHT_GRADIENT_PX = 18.0;
     private static final float HIGHLIGHT_TAIL_ALPHA = 0.35f;
 
@@ -55,6 +58,7 @@ public class MusicLyrics extends Module {
             lastSongId = songId;
             currentDisplaying = null;
             scrollOffset = 0;
+            lyricCache.reset();
         }
 
         float songProgress = CloudMusic.player.getCurrentTimeMillis();
@@ -132,17 +136,24 @@ public class MusicLyrics extends Module {
             return;
         }
 
+        String curText = lyricCache.getText();
         LyricLine cur = currentDisplaying;
-        LyricLine result = lyrics.get(0);
-        for (int i = 0; i < lyrics.size(); i++) {
-            LyricLine line = lyrics.get(i);
-            if (line == null) continue;
-            if (line.getTimestamp() > songProgress + 300f) {
-                if (i > 0) result = lyrics.get(i - 1);
-                break;
+        LyricLine result = cur;
+        if (result == null) result = lyrics.get(0);
+
+        if (curText != null && !curText.isEmpty()) {
+            for (int i = 0; i < lyrics.size(); i++) {
+                LyricLine line = lyrics.get(i);
+                if (line == null) continue;
+                String t = line.getLyric();
+                if (t == null) t = "";
+                if (t.equals(curText)) {
+                    result = line;
+                    break;
+                }
             }
-            if (i == lyrics.size() - 1) result = line;
         }
+
         currentDisplaying = result;
         if (cur != currentDisplaying) {
             scrollOffset = 0;
