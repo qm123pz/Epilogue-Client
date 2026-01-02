@@ -37,6 +37,7 @@ public class BloomShader {
         GL11.glClearColor(0, 0, 0, 0);
         fb.framebufferClear();
         fb.bindFramebuffer(false);
+        GL11.glViewport(0, 0, fb.framebufferWidth, fb.framebufferHeight);
         return fb;
     }
 
@@ -85,6 +86,7 @@ public class BloomShader {
         Framebuffer lastBuffer = framebufferList.get(0);
         lastBuffer.framebufferClear();
         lastBuffer.bindFramebuffer(false);
+        GL11.glViewport(0, 0, lastBuffer.framebufferWidth, lastBuffer.framebufferHeight);
         KAWASE_UP.init();
         KAWASE_UP.setUniformf("offset", offset, offset);
         KAWASE_UP.setUniformf("halfpixel", 1.0f / lastBuffer.framebufferWidth, 1.0f / lastBuffer.framebufferHeight);
@@ -101,11 +103,12 @@ public class BloomShader {
 
         GlStateManager.clearColor(0, 0, 0, 0);
         mc.getFramebuffer().bindFramebuffer(false);
+        GL11.glViewport(0, 0, mc.displayWidth, mc.displayHeight);
         RenderUtil.setAlphaLimit(0);
         GlStateManager.enableBlend();
         GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         RenderUtil.bindTexture(framebufferList.get(0).framebufferTexture);
-        RenderUtil.drawQuads();
+        RenderUtil.drawFixedQuads();
         GlStateManager.bindTexture(0);
         GlStateManager.setActiveTexture(GL13.GL_TEXTURE0);
     }
@@ -113,6 +116,7 @@ public class BloomShader {
     private static void renderDownFBO(Framebuffer fb, int texture, float offset) {
         fb.framebufferClear();
         fb.bindFramebuffer(false);
+        GL11.glViewport(0, 0, fb.framebufferWidth, fb.framebufferHeight);
         KAWASE_DOWN.init();
         KAWASE_DOWN.setUniformf("offset", offset, offset);
         KAWASE_DOWN.setUniformf("halfpixel", 1.0f / fb.framebufferWidth, 1.0f / fb.framebufferHeight);
@@ -126,6 +130,7 @@ public class BloomShader {
     private static void renderUpFBO(Framebuffer fb, int texture, float offset) {
         fb.framebufferClear();
         fb.bindFramebuffer(false);
+        GL11.glViewport(0, 0, fb.framebufferWidth, fb.framebufferHeight);
         KAWASE_UP.init();
         KAWASE_UP.setUniformf("offset", offset, offset);
         KAWASE_UP.setUniformf("halfpixel", 1.0f / fb.framebufferWidth, 1.0f / fb.framebufferHeight);

@@ -22,6 +22,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL20;
 import org.lwjgl.util.glu.GLU;
 
 import javax.vecmath.Vector3d;
@@ -300,6 +301,27 @@ public class RenderUtil {
         GL11.glTexCoord2d(1.0, 1.0);
         GL11.glVertex2d(sr.getScaledWidth(), 0.0);
         GL11.glEnd();
+    }
+
+    public static void drawQuads(float width, float height) {
+        GL11.glBegin(GL11.GL_QUADS);
+        GL11.glTexCoord2d(0.0, 1.0);
+        GL11.glVertex2d(0.0, 0.0);
+        GL11.glTexCoord2d(0.0, 0.0);
+        GL11.glVertex2d(0.0, height);
+        GL11.glTexCoord2d(1.0, 0.0);
+        GL11.glVertex2d(width, height);
+        GL11.glTexCoord2d(1.0, 1.0);
+        GL11.glVertex2d(width, 0.0);
+        GL11.glEnd();
+    }
+
+    public static void drawFixedQuads() {
+        ScaledResolution sr = new ScaledResolution(mc);
+        int factor = sr.getScaleFactor();
+        float width = (float) (mc.displayWidth / factor);
+        float height = (float) (mc.displayHeight / factor);
+        drawQuads(width, height);
     }
 
     public static void setAlphaLimit(float limit) {
