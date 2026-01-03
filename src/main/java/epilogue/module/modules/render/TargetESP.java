@@ -46,10 +46,10 @@ import net.minecraft.client.renderer.texture.DynamicTexture;
 public class TargetESP extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
 
-    private final ModeValue mode = new ModeValue("Mark Mode", 1, new String[]{"Points", "Ghost", "Image", "Exhi", "Circle"});
-    private final ModeValue imageMode = new ModeValue("Image Mode", 0, new String[]{"Rectangle", "QuadStapple", "TriangleStapple", "TriangleStipple", "Aim","Custom"}, () -> mode.getValue() == 2);
-    private final BooleanValue animation = new BooleanValue("Animation", true, () -> mode.getValue() == 2 && imageMode.getValue() == 5);
-    private final BooleanValue selectImage = new BooleanValue("Select Image", false, () -> mode.getValue() == 2 && imageMode.getValue() == 5) {
+    private final ModeValue mode = new ModeValue("Mark Mode", 1, new String[]{"Points", "Ghost", "Ghost2", "Image", "Exhi", "Circle"});
+    private final ModeValue imageMode = new ModeValue("Image Mode", 0, new String[]{"Rectangle", "QuadStapple", "TriangleStapple", "TriangleStipple", "Aim","Custom"}, () -> mode.getValue() == 3);
+    private final BooleanValue animation = new BooleanValue("Animation", true, () -> mode.getValue() == 3 && imageMode.getValue() == 5);
+    private final BooleanValue selectImage = new BooleanValue("Select Image", false, () -> mode.getValue() == 3 && imageMode.getValue() == 5) {
         @Override
         public boolean setValue(Object value) {
             boolean result = super.setValue(value);
@@ -60,9 +60,9 @@ public class TargetESP extends Module {
             return result;
         }
     };
-    private final FloatValue circleSpeed = new FloatValue("CircleSpeed", 2.0F, 1.0F, 5.0F, () -> mode.getValue() == 4);
+    private final FloatValue circleSpeed = new FloatValue("CircleSpeed", 2.0F, 1.0F, 5.0F, () -> mode.getValue() == 5);
     private final BooleanValue onlyPlayer = new BooleanValue("OnlyPlayer", false);
-    private final BooleanValue showHurt = new BooleanValue("ShowHurt", false, () -> mode.getValue() == 2);
+    private final BooleanValue showHurt = new BooleanValue("ShowHurt", false, () -> mode.getValue() == 3);
     private ResourceLocation customImage = null;
     private long lastHurtTime = 0;
     private static final long HURT_DURATION = 500;
@@ -217,29 +217,6 @@ public class TargetESP extends Module {
             if (mode.getValue() == 0)
                 points(event);
 
-            if (mode.getValue() == 3) {
-                float alpha = getAlpha();
-                int baseAlpha = (int) (75 * alpha);
-                int color = this.target.hurtTime > 3 ? new Color(200, 255, 100, baseAlpha).getRGB() : this.target.hurtTime < 3 ? new Color(235, 40, 40, baseAlpha).getRGB() : new Color(255, 255, 255, baseAlpha).getRGB();
-                GlStateManager.pushMatrix();
-                GL11.glShadeModel(7425);
-                GL11.glHint(3154, 4354);
-                ((IAccessorEntityRenderer) mc.entityRenderer).callSetupCameraTransform(event.getPartialTicks(), 2);
-                double x = target.prevPosX + (target.posX - target.prevPosX) * (double) event.getPartialTicks() - ((IAccessorRenderManager) mc.getRenderManager()).getRenderPosX();
-                double y = target.prevPosY + (target.posY - target.prevPosY) * (double) event.getPartialTicks() - ((IAccessorRenderManager) mc.getRenderManager()).getRenderPosY();
-                double z = target.prevPosZ + (target.posZ - target.prevPosZ) * (double) event.getPartialTicks() - ((IAccessorRenderManager) mc.getRenderManager()).getRenderPosZ();
-                double xMoved = target.posX - target.prevPosX;
-                double yMoved = target.posY - target.prevPosY;
-                double zMoved = target.posZ - target.prevPosZ;
-                double motionX = 0.0;
-                double motionY = 0.0;
-                double motionZ = 0.0;
-                GlStateManager.translate(x + (xMoved + motionX + (mc.thePlayer.motionX + 0.005)), y + (yMoved + motionY + (mc.thePlayer.motionY - 0.002)), z + (zMoved + motionZ + (mc.thePlayer.motionZ + 0.005)));
-                AxisAlignedBB axisAlignedBB = target.getEntityBoundingBox();
-                RenderUtil.drawAxisAlignedBB(new AxisAlignedBB(axisAlignedBB.minX - 0.1 - target.posX, axisAlignedBB.minY - 0.1 - target.posY, axisAlignedBB.minZ - 0.1 - target.posZ, axisAlignedBB.maxX + 0.1 - target.posX, axisAlignedBB.maxY + 0.2 - target.posY, axisAlignedBB.maxZ + 0.1 - target.posZ), true, color);
-                GlStateManager.popMatrix();
-            }
-
             if (mode.getValue() == 1) {
                 GlStateManager.pushMatrix();
                 GlStateManager.disableLighting();
@@ -312,7 +289,34 @@ public class TargetESP extends Module {
                 GlStateManager.popMatrix();
             }
 
+            if (mode.getValue() == 2) {
+                ghost2(event);
+            }
+
             if (mode.getValue() == 4) {
+                float alpha = getAlpha();
+                int baseAlpha = (int) (75 * alpha);
+                int color = this.target.hurtTime > 3 ? new Color(200, 255, 100, baseAlpha).getRGB() : this.target.hurtTime < 3 ? new Color(235, 40, 40, baseAlpha).getRGB() : new Color(255, 255, 255, baseAlpha).getRGB();
+                GlStateManager.pushMatrix();
+                GL11.glShadeModel(7425);
+                GL11.glHint(3154, 4354);
+                ((IAccessorEntityRenderer) mc.entityRenderer).callSetupCameraTransform(event.getPartialTicks(), 2);
+                double x = target.prevPosX + (target.posX - target.prevPosX) * (double) event.getPartialTicks() - ((IAccessorRenderManager) mc.getRenderManager()).getRenderPosX();
+                double y = target.prevPosY + (target.posY - target.prevPosY) * (double) event.getPartialTicks() - ((IAccessorRenderManager) mc.getRenderManager()).getRenderPosY();
+                double z = target.prevPosZ + (target.posZ - target.prevPosZ) * (double) event.getPartialTicks() - ((IAccessorRenderManager) mc.getRenderManager()).getRenderPosZ();
+                double xMoved = target.posX - target.prevPosX;
+                double yMoved = target.posY - target.prevPosY;
+                double zMoved = target.posZ - target.prevPosZ;
+                double motionX = 0.0;
+                double motionY = 0.0;
+                double motionZ = 0.0;
+                GlStateManager.translate(x + (xMoved + motionX + (mc.thePlayer.motionX + 0.005)), y + (yMoved + motionY + (mc.thePlayer.motionY - 0.002)), z + (zMoved + motionZ + (mc.thePlayer.motionZ + 0.005)));
+                AxisAlignedBB axisAlignedBB = target.getEntityBoundingBox();
+                RenderUtil.drawAxisAlignedBB(new AxisAlignedBB(axisAlignedBB.minX - 0.1 - target.posX, axisAlignedBB.minY - 0.1 - target.posY, axisAlignedBB.minZ - 0.1 - target.posZ, axisAlignedBB.maxX + 0.1 - target.posX, axisAlignedBB.maxY + 0.2 - target.posY, axisAlignedBB.maxZ + 0.1 - target.posZ), true, color);
+                GlStateManager.popMatrix();
+            }
+
+            if (mode.getValue() == 5) {
                 prevCircleStep = circleStep;
                 circleStep += (double) this.circleSpeed.getValue() * RenderUtil.deltaTime() * 0.05;
                 float eyeHeight = target.getEyeHeight();
@@ -367,15 +371,141 @@ public class TargetESP extends Module {
                 GL11.glDisable(3042);
                 GL11.glEnable(2884);
                 GL11.glPopMatrix();
-                GlStateManager.resetColor();
             }
         }
     }
-    
+
+    private void ghost2(Render3DEvent event) {
+        if (target == null) return;
+
+        float partialTicks = event.getPartialTicks();
+        Vec3 interpolated = MathUtil.interpolate(new Vec3(target.lastTickPosX, target.lastTickPosY, target.lastTickPosZ), target.getPositionVector(), partialTicks);
+        interpolated = new Vec3(interpolated.xCoord, interpolated.yCoord + 0.9f, interpolated.zCoord);
+
+        GlStateManager.pushMatrix();
+        GlStateManager.disableLighting();
+        GlStateManager.depthMask(false);
+        GlStateManager.enableBlend();
+        GlStateManager.shadeModel(7425);
+        GlStateManager.disableCull();
+        GlStateManager.disableAlpha();
+        GlStateManager.tryBlendFuncSeparate(770, 1, 0, 1);
+
+        RenderUtil.setupOrientationMatrix(interpolated.xCoord, interpolated.yCoord, interpolated.zCoord);
+
+        float[] view = new float[]{mc.getRenderManager().playerViewY, mc.getRenderManager().playerViewX};
+        GL11.glRotated(-view[0], 0.0, 1.0, 0.0);
+        GL11.glRotated(view[1], 1.0, 0.0, 0.0);
+
+        long now = System.currentTimeMillis();
+        double t = (now - lastTime) / 1000.0;
+        float alpha = getAlpha();
+        int baseColor = ColorUtil.applyOpacity(getInterfaceColor(), alpha).getRGB();
+
+        double breathe = 0.5 + 0.5 * Math.sin(t * 1.35);
+        double spin = t * (1.2 + 0.8 * breathe);
+
+        double inOut = (((((Math.sin(t) + 1.0) * 0.5) < 0.68) ? (Math.pow((((Math.sin(t) + 1.0) * 0.5) / 0.68), 3.6) * 0.70) : (0.70 + (1.0 - 0.70) * (1.0 - Math.pow(1.0 - (((Math.sin(t) + 1.0) * 0.5) - 0.68) / 0.32, 1.12)))) - 0.5) * 2.0;
+        double inOut2 = ((((Math.sin(t + Math.PI / 2.0) + 1.0) * 0.5) * ((Math.sin(t + Math.PI / 2.0) + 1.0) * 0.5) * (3.0 - 2.0 * ((Math.sin(t + Math.PI / 2.0) + 1.0) * 0.5))) - 0.5) * 2.0;
+        double baseRadius = 0.22 + (0.5 + 0.5 * Math.sin(t * 1.35)) * 0.28;
+        double heightAmp = 0.45 + (0.5 + 0.5 * Math.sin(t * 1.05)) * 0.35;
+
+        int layers = 1;
+        int pointsPerLayer = 28;
+
+        for (int layer = 0; layer < layers; layer++) {
+            for (int i = 0; i < pointsPerLayer; i++) {
+                for (int _ = 0; _ < 1; _++) {
+                    double p = (i + (_ * 0.0)) / (double) pointsPerLayer;
+                    double a = (p * Math.PI * 2.0) + (spin * 1.25);
+
+                    double x = Math.cos(a) * ((target.width * 0.56) + baseRadius * 0.78 + (0.26 + baseRadius * 0.38) * inOut);
+                    double z = Math.sin(a) * ((target.width * 0.56) + baseRadius * 0.78 + (0.26 + baseRadius * 0.38) * inOut);
+
+                    GlStateManager.pushMatrix();
+                    GlStateManager.translate(
+                            x + Math.cos(a + Math.PI / 2.0) * (Math.sin(t * 1.7 + p * Math.PI * 2.0) * 0.06),
+                            ((0.44 + 0.08 * Math.sin(t * 1.2)) * inOut + 0.06 * inOut2)
+                                    + (Math.sin(a * 2.0 + t * 2.2) * 0.05)
+                                    + Math.sin(t * 2.2 + p * Math.PI * 2.0) * heightAmp * 0.12,
+                            z + Math.sin(a + Math.PI / 2.0) * (Math.sin(t * 1.7 + p * Math.PI * 2.0) * 0.06)
+                    );
+                    GlStateManager.rotate((float) (t * 180.0 + i * 12.0 + layer * 60.0), 0, 0, 1);
+                    RenderUtil.drawImage(
+                            glowCircle,
+                            0f,
+                            0f,
+                            -(float) ((0.16 + 0.06 * (1.0 - p)) * (0.86 + 0.24 * Math.sin(t * 2.6 + i * 0.45) + 0.14 * ((inOut * 0.5) + 0.5))),
+                            -(float) ((0.16 + 0.06 * (1.0 - p)) * (0.86 + 0.24 * Math.sin(t * 2.6 + i * 0.45) + 0.14 * ((inOut * 0.5) + 0.5))),
+                            baseColor
+                    );
+                    GlStateManager.popMatrix();
+                }
+            }
+        }
+
+        int spikes = 10;
+        for (int i = 0; i < spikes; i++) {
+            for (int _ = 0; _ < 1; _++) {
+                double p = (i + (_ * 0.0)) / (double) spikes;
+                double a = p * Math.PI * 2.0 - spin * 0.95;
+
+                GlStateManager.pushMatrix();
+                GlStateManager.translate(
+                        Math.cos(a) * ((target.width * 0.86 + 0.20) + 0.10 * Math.sin(t * 2.0 + i) - (0.18 + baseRadius * 0.25) * inOut),
+                        (-(0.44 + 0.08 * Math.sin(t * 1.2)) * inOut - 0.06 * inOut2 + Math.sin(t * 2.0 + i * 0.70) * 0.10),
+                        Math.sin(a) * ((target.width * 0.86 + 0.20) + 0.10 * Math.sin(t * 2.0 + i) - (0.18 + baseRadius * 0.25) * inOut)
+                );
+                GlStateManager.rotate((float) (t * 320.0 + i * 30.0), 0, 0, 1);
+                RenderUtil.drawImage(
+                        glowCircle,
+                        0f,
+                        0f,
+                        -(float) (0.17 + 0.06 * (0.5 + 0.5 * Math.sin(t * 3.0 + i)) + 0.05 * (1.0 - ((inOut * 0.5) + 0.5))),
+                        -(float) (0.17 + 0.06 * (0.5 + 0.5 * Math.sin(t * 3.0 + i)) + 0.05 * (1.0 - ((inOut * 0.5) + 0.5))),
+                        baseColor
+                );
+                GlStateManager.popMatrix();
+            }
+        }
+
+        int sparks = 10;
+        for (int i = 0; i < sparks; i++) {
+            for (int _ = 0; _ < 1; _++) {
+                double p = (i + (_ * 0.0)) / (double) sparks;
+                double a = p * Math.PI * 2.0 + spin * 1.9;
+
+                GlStateManager.pushMatrix();
+                GlStateManager.translate(
+                        Math.cos(a) * ((target.width * 0.62 + 0.12) + 0.12 * Math.sin(t * 1.8 + i)),
+                        (Math.sin(t * 2.6 + i) * 0.16) + (Math.cos(t * 2.0 + i * 0.7) * 0.12),
+                        Math.sin(a) * ((target.width * 0.62 + 0.12) + 0.12 * Math.sin(t * 1.8 + i))
+                );
+                GlStateManager.rotate((float) (t * 420.0 + i * 40.0), 0, 0, 1);
+                RenderUtil.drawImage(
+                        glowCircle,
+                        0f,
+                        0f,
+                        -(float) (0.09 + 0.05 * (0.5 + 0.5 * Math.sin(t * 4.2 + i * 1.3))),
+                        -(float) (0.09 + 0.05 * (0.5 + 0.5 * Math.sin(t * 4.2 + i * 1.3))),
+                        ColorUtil.applyOpacity(getInterfaceColor(), (float) (alpha * (0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * 5.0 + i * 2.2))))).getRGB()
+                );
+                GlStateManager.popMatrix();
+            }
+        }
+
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.disableBlend();
+        GlStateManager.enableCull();
+        GlStateManager.enableAlpha();
+        GlStateManager.depthMask(true);
+        GlStateManager.popMatrix();
+    }
+
     @EventTarget
     public void onRender2D(Render2DEvent event) {
         int index = 3;
-        if (mode.getValue() == 2 && target != null) {
+        if (mode.getValue() == 3 && target != null) {
             float dst = mc.thePlayer.getDistanceToEntity(target);
             float[] pos = targetESPSPos(target, event);
             if (pos != null) {
@@ -389,7 +519,7 @@ public class TargetESP extends Module {
     public void onShader2D(Shader2DEvent event) {
         if (event.getShaderType() == Shader2DEvent.ShaderType.GLOW) {
             int index = 3;
-            if (mode.getValue() == 2 && imageMode.getValue() == 0 && target != null) {
+            if (mode.getValue() == 3 && imageMode.getValue() == 0 && target != null) {
                 float dst = mc.thePlayer.getDistanceToEntity(target);
                 float[] pos = targetESPSPos(target, null);
                 if (pos != null) {
