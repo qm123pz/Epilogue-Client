@@ -3,24 +3,25 @@ package epilogue.module.modules.combat;
 import com.google.common.base.CaseFormat;
 import epilogue.Epilogue;
 import epilogue.enums.DelayModules;
+import epilogue.mixin.IAccessorEntity;
 import epilogue.util.MoveUtil;
 import epilogue.util.RotationUtil;
 import epilogue.value.values.*;
-import net.minecraft.block.BlockWeb;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.Packet;
+
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
 import net.minecraft.network.play.server.S19PacketEntityStatus;
 import net.minecraft.network.play.server.S27PacketExplosion;
 import net.minecraft.network.play.server.S32PacketConfirmTransaction;
-import net.minecraft.util.BlockPos;
 import net.minecraft.world.World;
 import epilogue.util.ChatUtil;
 import epilogue.event.EventTarget;
 import epilogue.event.types.EventType;
 import epilogue.events.*;
+
 import epilogue.management.RotationState;
 import epilogue.module.Module;
 import net.minecraft.util.AxisAlignedBB;
@@ -64,22 +65,17 @@ public class Velocity extends Module {
     }
 
     private boolean isInWeb(EntityPlayer player) {
-        if (player == null || player.worldObj == null) return false;
-        return player.worldObj.getBlockState(new BlockPos(player.posX, player.posY - 0.01, player.posZ)).getBlock()
-                instanceof BlockWeb;
+        return player != null && ((IAccessorEntity) player).getIsInWeb();
     }
 
     private boolean isTargetInRaycastRange(Entity entity) {
         if (entity == null || mc.thePlayer == null) return false;
         AxisAlignedBB bb = entity.getEntityBoundingBox();
         if (bb == null) return false;
-        //Vec3 start = new Vec3(mc.thePlayer.posX, mc.thePlayer.posY + (double)mc.thePlayer.getEyeHeight(), mc.thePlayer.posZ);
-        //Vec3 look = mc.thePlayer.getLook(1.0F);
-        //Vec3 end = start.addVector(look.xCoord * 3.0, look.yCoord * 3.0, look.zCoord * 3.0);
         return RotationUtil.rayTrace(bb, mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch, 3.0) != null;
     }
 
-    public final ModeValue mode = new ModeValue("mode", 0, new String[]{"Vanilla", "JumpReset", "Mix"});
+    public final ModeValue mode = new ModeValue("mode", 0, new String[]{"Vanilla", "JumpReset", "Reduce"});
 
     // Vanilla
     public final PercentValue horizontal = new PercentValue("Horizontal", 100, () -> this.mode.getValue() == 0);
@@ -216,6 +212,9 @@ public class Velocity extends Module {
         if (this.isMix() && this.mixReduce.getValue() && packet instanceof S12PacketEntityVelocity) {
             S12PacketEntityVelocity vel = (S12PacketEntityVelocity) packet;
             if (vel.getEntityID() == mc.thePlayer.getEntityId()) {
+
+                reduceReceiving = true;
+
                 Entity target;
                 Aura aura = (Aura) Epilogue.moduleManager.modules.get(Aura.class);
                 if (aura != null && aura.isEnabled() && aura.getTarget() != null) {
@@ -224,19 +223,9 @@ public class Velocity extends Module {
                     target = getNearestPlayerTarget();
                 }
                 boolean rangeOk = (target == null) || (mc.thePlayer.getDistanceToEntity(target) > 3.2F);
-                boolean isBlocking = aura != null && aura.autoBlock.getValue() != 3 && aura.autoBlock.getValue() != 4
-                        ? (aura.isPlayerBlocking() || aura.blockingState)
-                        : aura != null && aura.isBlocking();
+                boolean isBlocking = aura != null && aura.autoBlock.getValue() != 3 && aura.autoBlock.getValue() != 4 ? (aura.isPlayerBlocking() || aura.blockingState) : aura != null && aura.isBlocking();
                 boolean inBadPos = isInWeb(mc.thePlayer) || mc.thePlayer.isOnLadder() || mc.thePlayer.isInWater() || mc.thePlayer.isInLava();
-
-                if (!reduceReceiving &&
-                        reduceTicksSinceTeleport >= 3 &&
-                        !inBadPos &&
-                        !mc.thePlayer.isSwingInProgress &&
-                        !isBlocking &&
-                        rangeOk &&
-                        !mc.thePlayer.onGround) {
-
+                if (reduceReceiving && reduceTicksSinceTeleport >= 3 && !inBadPos && !mc.thePlayer.isSwingInProgress && !isBlocking && rangeOk) {
                     reduceActive = true;
                     reduceVelocityTicks = 0;
                 }
@@ -299,6 +288,7 @@ public class Velocity extends Module {
         if (!this.isEnabled() || mc.thePlayer == null) return;
 
         if (this.isMix() && this.mixReduce.getValue()) {
+            reduceReceiving = false;
             reduceTicksSinceTeleport++;
         }
 
