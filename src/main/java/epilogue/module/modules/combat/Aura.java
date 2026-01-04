@@ -162,7 +162,6 @@ public class Aura extends Module {
         float t = RotationUtils.clamp(diffMag / 180f, 0f, 1f);
         float eased = (float) Math.sin(t * (Math.PI / 2.0));
         float stepBase = SMOOTH_BACK_MIN_SPEED + (SMOOTH_BACK_MAX_SPEED - SMOOTH_BACK_MIN_SPEED) * eased;
-
         if (++smoothBackNoiseTick >= 2) {
             smoothBackNoiseTick = 0;
             float n = SMOOTH_BACK_NOISE;
