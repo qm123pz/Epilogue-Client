@@ -8,7 +8,7 @@ import epilogue.event.types.Priority;
 import epilogue.events.PacketEvent;
 import epilogue.events.TickEvent;
 import epilogue.events.UpdateEvent;
-import epilogue.mixin.IAccessorC0DPacketCloseWindow;
+import epiloguemixinbridge.IAccessorC0DPacketCloseWindow;
 import epilogue.module.Module;
 import epilogue.util.KeyBindUtil;
 import epilogue.util.PacketUtil;

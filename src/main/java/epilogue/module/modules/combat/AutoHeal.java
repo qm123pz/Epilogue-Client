@@ -3,7 +3,7 @@ package epilogue.module.modules.combat;
 import epilogue.event.EventTarget;
 import epilogue.event.types.Priority;
 import epilogue.events.*;
-import epilogue.mixin.IAccessorPlayerControllerMP;
+import epiloguemixinbridge.IAccessorPlayerControllerMP;
 import epilogue.module.Module;
 import epilogue.util.PacketUtil;
 import epilogue.util.TimerUtil;

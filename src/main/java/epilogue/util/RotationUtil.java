@@ -1,6 +1,6 @@
 package epilogue.util;
 
-import epilogue.mixin.IAccessorEntity;
+import epiloguemixinbridge.IAccessorEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.AxisAlignedBB;

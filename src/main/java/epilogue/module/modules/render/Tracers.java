@@ -5,7 +5,7 @@ import epilogue.enums.ChatColors;
 import epilogue.event.EventTarget;
 import epilogue.events.Render2DEvent;
 import epilogue.events.Render3DEvent;
-import epilogue.mixin.IAccessorMinecraft;
+import epiloguemixinbridge.IAccessorMinecraft;
 import epilogue.module.Module;
 import epilogue.util.RenderUtil;
 import epilogue.util.RotationUtil;

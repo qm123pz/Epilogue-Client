@@ -3,7 +3,7 @@ package epilogue.module.modules.player;
 import epilogue.event.EventTarget;
 import epilogue.event.types.EventType;
 import epilogue.events.TickEvent;
-import epilogue.mixin.IAccessorPlayerControllerMP;
+import epiloguemixinbridge.IAccessorPlayerControllerMP;
 import epilogue.module.Module;
 import epilogue.value.values.IntValue;
 import epilogue.value.values.PercentValue;

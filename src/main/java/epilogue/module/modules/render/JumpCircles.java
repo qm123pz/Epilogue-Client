@@ -21,10 +21,9 @@ import epilogue.module.Module;
 import epilogue.value.values.BooleanValue;
 import epilogue.value.values.ModeValue;
 import epilogue.value.values.FloatValue;
-import epilogue.util.MathUtil;
 import epilogue.util.render.ColorUtil;
 import epilogue.util.RenderUtil;
-import epilogue.mixin.IAccessorMinecraft;
+import epiloguemixinbridge.IAccessorMinecraft;
 
 import java.awt.*;
 import java.util.ArrayList;

@@ -3,7 +3,7 @@ package epilogue.module.modules.combat;
 import com.google.common.base.CaseFormat;
 import epilogue.Epilogue;
 import epilogue.enums.DelayModules;
-import epilogue.mixin.IAccessorEntity;
+import epiloguemixinbridge.IAccessorEntity;
 import epilogue.util.MoveUtil;
 import epilogue.util.RotationUtil;
 import epilogue.value.values.*;

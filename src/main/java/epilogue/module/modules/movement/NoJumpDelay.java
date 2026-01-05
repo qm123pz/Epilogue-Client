@@ -4,7 +4,7 @@ import epilogue.event.EventTarget;
 import epilogue.event.types.EventType;
 import epilogue.event.types.Priority;
 import epilogue.events.TickEvent;
-import epilogue.mixin.IAccessorEntityLivingBase;
+import epiloguemixinbridge.IAccessorEntityLivingBase;
 import epilogue.module.Module;
 import epilogue.value.values.IntValue;
 import net.minecraft.client.Minecraft;

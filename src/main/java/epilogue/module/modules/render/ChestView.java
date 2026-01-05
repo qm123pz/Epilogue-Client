@@ -26,7 +26,7 @@ import epilogue.module.Module;
 import epilogue.util.render.PostProcessing;
 import epilogue.util.render.RenderUtil;
 import epilogue.value.values.IntValue;
-import epilogue.mixin.IAccessorRenderManager;
+import epiloguemixinbridge.IAccessorRenderManager;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;

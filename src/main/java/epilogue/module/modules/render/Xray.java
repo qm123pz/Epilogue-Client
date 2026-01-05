@@ -5,7 +5,7 @@ import epilogue.event.types.EventType;
 import epilogue.events.LoadWorldEvent;
 import epilogue.events.PacketEvent;
 import epilogue.events.Render3DEvent;
-import epilogue.mixin.IAccessorMinecraft;
+import epiloguemixinbridge.IAccessorMinecraft;
 import epilogue.module.Module;
 import epilogue.util.RenderUtil;
 import epilogue.value.values.*;

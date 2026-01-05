@@ -1,9 +1,9 @@
 package epilogue.util;
 
 import epilogue.enums.ChatColors;
-import epilogue.mixin.IAccessorEntityRenderer;
-import epilogue.mixin.IAccessorMinecraft;
-import epilogue.mixin.IAccessorRenderManager;
+import epiloguemixinbridge.IAccessorEntityRenderer;
+import epiloguemixinbridge.IAccessorMinecraft;
+import epiloguemixinbridge.IAccessorRenderManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.*;
@@ -22,7 +22,6 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.Vec3;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL20;
 import org.lwjgl.util.glu.GLU;
 
 import javax.vecmath.Vector3d;

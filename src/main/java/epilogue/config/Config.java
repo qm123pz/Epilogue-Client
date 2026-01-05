@@ -4,7 +4,7 @@ import java.io.*;
 import java.util.ArrayList;
 import com.google.gson.*;
 import epilogue.Epilogue;
-import epilogue.mixin.IAccessorMinecraft;
+import epiloguemixinbridge.IAccessorMinecraft;
 import epilogue.module.Module;
 import epilogue.util.ChatUtil;
 import epilogue.value.Value;

@@ -32,9 +32,9 @@ import epilogue.util.TimerUtil;
 import epilogue.util.ColorUtil;
 import epilogue.util.GLUtil;
 import epilogue.util.RenderUtil;
-import epilogue.mixin.IAccessorEntityRenderer;
-import epilogue.mixin.IAccessorRenderManager;
-import epilogue.mixin.IAccessorMinecraft;
+import epiloguemixinbridge.IAccessorEntityRenderer;
+import epiloguemixinbridge.IAccessorRenderManager;
+import epiloguemixinbridge.IAccessorMinecraft;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;

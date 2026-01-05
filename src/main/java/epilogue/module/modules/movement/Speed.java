@@ -5,7 +5,7 @@ import epilogue.event.EventTarget;
 import epilogue.event.types.Priority;
 import epilogue.events.LivingUpdateEvent;
 import epilogue.events.StrafeEvent;
-import epilogue.mixin.IAccessorEntity;
+import epiloguemixinbridge.IAccessorEntity;
 import epilogue.module.Module;
 import epilogue.module.modules.player.Scaffold;
 import epilogue.util.MoveUtil;

@@ -8,7 +8,7 @@ import epilogue.event.types.EventType;
 import epilogue.event.types.Priority;
 import epilogue.events.*;
 import epilogue.management.RotationState;
-import epilogue.mixin.IAccessorPlayerControllerMP;
+import epiloguemixinbridge.IAccessorPlayerControllerMP;
 import epilogue.module.Module;
 import epilogue.module.modules.combat.rotation.OPRotationSystem;
 import epilogue.module.modules.combat.rotation.Rotation;

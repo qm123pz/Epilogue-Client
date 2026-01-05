@@ -2,7 +2,7 @@ package epilogue.module.modules.movement;
 
 import epilogue.event.EventTarget;
 import epilogue.events.TickEvent;
-import epilogue.mixin.IAccessorEntityLivingBase;
+import epiloguemixinbridge.IAccessorEntityLivingBase;
 import epilogue.module.Module;
 import epilogue.util.KeyBindUtil;
 import epilogue.value.values.BooleanValue;

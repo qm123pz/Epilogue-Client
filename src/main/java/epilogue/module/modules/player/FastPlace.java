@@ -3,7 +3,7 @@ package epilogue.module.modules.player;
 import epilogue.event.EventTarget;
 import epilogue.event.types.EventType;
 import epilogue.events.TickEvent;
-import epilogue.mixin.IAccessorMinecraft;
+import epiloguemixinbridge.IAccessorMinecraft;
 import epilogue.module.Module;
 import epilogue.util.RotationUtil;
 import epilogue.value.values.BooleanValue;

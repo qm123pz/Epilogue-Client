@@ -2,7 +2,7 @@ package epilogue.module.modules.render;
 
 import epilogue.event.EventTarget;
 import epilogue.events.Render3DEvent;
-import epilogue.mixin.IAccessorRenderManager;
+import epiloguemixinbridge.IAccessorRenderManager;
 import epilogue.module.Module;
 import epilogue.util.RenderUtil;
 import epilogue.value.values.BooleanValue;

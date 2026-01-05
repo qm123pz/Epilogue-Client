@@ -8,6 +8,7 @@ import epilogue.module.Module;
 import epilogue.util.TimerUtil;
 import epilogue.value.values.BooleanValue;
 import epilogue.value.values.FloatValue;
+import epiloguemixinbridge.IAccessorPlayerControllerMP;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.inventory.GuiInventory;
 import net.minecraft.entity.player.InventoryPlayer;
@@ -107,7 +108,7 @@ public class Refill extends Module {
         if (onInv.getValue() && !(mc.currentScreen instanceof GuiInventory)) {
             return false;
         }
-        if (((epilogue.mixin.IAccessorPlayerControllerMP) mc.playerController).getIsHittingBlock()) {
+        if (((IAccessorPlayerControllerMP) mc.playerController).getIsHittingBlock()) {
             return true;
         }
         return false;
