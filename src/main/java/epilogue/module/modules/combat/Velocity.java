@@ -479,7 +479,7 @@ public class Velocity extends Module {
                     if (mc.getNetHandler() != null) {
                         boolean canAttack;
                         if (aura.autoBlock.getValue() == 3 || aura.autoBlock.getValue() == 4 || aura.autoBlock.getValue() == 5) {
-                            canAttack = (mc.thePlayer.isUsingItem() || aura.blockingState) && ItemUtil.isHoldingSword();
+                            canAttack = !(mc.thePlayer.isUsingItem() || aura.blockingState) && ItemUtil.isHoldingSword();
                         } else {
                             canAttack = true;
                         }
