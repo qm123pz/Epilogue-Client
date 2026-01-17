@@ -2,40 +2,36 @@ package epilogue.module.modules.combat;
 
 import epilogue.Epilogue;
 import epilogue.enums.DelayModules;
-import epilogue.util.MoveUtil;
-import epilogue.util.RayCastUtil;
-import epilogue.util.RotationUtil;
-import epilogue.value.values.*;
-import epiloguemixinbridge.IAccessorEntity;
-import net.minecraft.client.Minecraft;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.network.Packet;
-import net.minecraft.network.play.server.S12PacketEntityVelocity;
-import net.minecraft.network.play.server.S19PacketEntityStatus;
-import net.minecraft.network.play.server.S32PacketConfirmTransaction;
-import net.minecraft.network.play.server.S08PacketPlayerPosLook;
-import epilogue.util.ChatUtil;
 import epilogue.event.EventTarget;
 import epilogue.event.types.EventType;
 import epilogue.events.*;
 import epilogue.management.RotationState;
 import epilogue.module.Module;
+import epilogue.util.ChatUtil;
+import epilogue.util.MoveUtil;
+import epilogue.util.RotationUtil;
+import epilogue.value.values.BooleanValue;
+import epilogue.value.values.IntValue;
+import epilogue.value.values.ModeValue;
+import epilogue.value.values.PercentValue;
+import epiloguemixinbridge.IAccessorEntity;
+import net.minecraft.client.Minecraft;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.network.Packet;
+import net.minecraft.network.play.client.*;
+import net.minecraft.network.play.server.S08PacketPlayerPosLook;
+import net.minecraft.network.play.server.S12PacketEntityVelocity;
+import net.minecraft.network.play.server.S19PacketEntityStatus;
+import net.minecraft.network.play.server.S32PacketConfirmTransaction;
 import net.minecraft.util.AxisAlignedBB;
-import java.util.Random;
-import net.minecraft.network.play.client.C0APacketAnimation;
-import net.minecraft.network.play.client.C02PacketUseEntity;
 import net.minecraft.util.MovingObjectPosition;
-import net.minecraft.network.play.client.C03PacketPlayer;
-import net.minecraft.network.play.client.C09PacketHeldItemChange;
-import net.minecraft.network.play.client.C07PacketPlayerDigging;
-import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
-import net.minecraft.network.play.client.C16PacketClientStatus;
 
 import java.text.DecimalFormat;
-import java.util.Deque;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.Random;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class Velocity extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
@@ -90,33 +86,19 @@ public class Velocity extends Module {
     public final PercentValue explosionVertical = new PercentValue("Explosion Vertical", 100, () -> this.mode.getValue() == 0);
     public final PercentValue chance = new PercentValue("Chance", 100);
     public final BooleanValue fakeCheck = new BooleanValue("Check Fake", true);
-
-    public final BooleanValue airDelay = new BooleanValue("Air Delay", false, () -> this.mode.getValue() == 1);
-    public final IntValue airDelayTicks = new IntValue("Air Delay Ticks", 3, 1, 20, () -> this.mode.getValue() == 1 && this.airDelay.getValue());
-
-    public final BooleanValue mixDelay = new BooleanValue("Delay", true, () -> this.mode.getValue() == 2);
-    public final IntValue mixDelayTicks = new IntValue("Delay Ticks", 1, 1, 20, () -> this.mode.getValue() == 2 && this.mixDelay.getValue());
-    public final BooleanValue mixDelayOnlyInGround = new BooleanValue("Delay Only In Ground", true, () -> this.mode.getValue() == 2 && this.mixDelay.getValue());
     public final BooleanValue mixReduce = new BooleanValue("Reduce", false, () -> this.mode.getValue() == 2);
     public final BooleanValue mixJumpReset = new BooleanValue("Jump Reset", true, () -> this.mode.getValue() == 2);
     public final BooleanValue mixRotate = new BooleanValue("Rotate", false, () -> this.mode.getValue() == 2 && this.mixJumpReset.getValue());
     public final BooleanValue mixRotateOnlyInGround = new BooleanValue("Rotate Only In Ground", true, () -> this.mode.getValue() == 2 && this.mixJumpReset.getValue() && this.mixRotate.getValue());
     public final BooleanValue mixAutoMove = new BooleanValue("Auto Move", true, () -> this.mode.getValue() == 2 && this.mixJumpReset.getValue() && this.mixRotate.getValue());
     public final IntValue mixRotateTicks = new IntValue("Rotate Ticks", 3, 1, 20, () -> this.mode.getValue() == 2 && this.mixJumpReset.getValue() && this.mixRotate.getValue());
-    public final BooleanValue reduceOnlySwinging = new BooleanValue("Reduce Only Swinging", false, () -> this.mode.getValue() == 2 && this.mixReduce.getValue());
-    public final BooleanValue reduceOnlyMoving = new BooleanValue("Reduce Only Moving", false, () -> this.mode.getValue() == 2 && this.mixReduce.getValue());
-
-    public final PercentValue watchdogChance = new PercentValue("Chance", 100, () -> this.mode.getValue() == 3);
     public final BooleanValue watchdogLegitTiming = new BooleanValue("Legit Timing", false, () -> this.mode.getValue() == 3);
     public final BooleanValue onSwing = new BooleanValue("On Swing", true, () -> this.mode.getValue() == 3);
     public final BooleanValue watchdogJumpReset = new BooleanValue("Jumpreset", true, () -> this.mode.getValue() == 3);
-
     public final PercentValue watchdogReduceChance = new PercentValue("Chance", 100, () -> this.mode.getValue() == 4);
-    public final BooleanValue watchdogReduceLegitTiming = new BooleanValue("Legit Timing", false, () -> this.mode.getValue() == 4);
     public final IntValue watchdogReduceHitsUntilJump = new IntValue("Hits Until Jump", 2, 1, 10, () -> this.isWatchdogReduce());
     public final IntValue watchdogReduceTicksUntilJump = new IntValue("Ticks Until Jump", 2, 1, 100, () -> this.isWatchdogReduce());
     public final BooleanValue watchdogReduceDelay = new BooleanValue("Delay", false, () -> this.isWatchdogReduce());
-    public final IntValue watchdogReduceDelayTicks = new IntValue("Delay Ticks", 1, 1, 20, () -> this.isWatchdogReduce() && this.watchdogReduceDelay.getValue());
     public final BooleanValue watchdogReduceRotate = new BooleanValue("Rotate", false, () -> this.isWatchdogReduce());
     public final BooleanValue watchdogReduceRotateOnlyInGround = new BooleanValue("Rotate Only In Ground", true, () -> this.isWatchdogReduce() && this.watchdogReduceRotate.getValue());
     public final BooleanValue watchdogReduceAutoMove = new BooleanValue("Auto Move", true, () -> this.isWatchdogReduce() && this.watchdogReduceRotate.getValue());
@@ -156,13 +138,13 @@ public class Velocity extends Module {
             } catch (Exception e) {
                 try {
                     if (packet instanceof S12PacketEntityVelocity) {
-                        ((S12PacketEntityVelocity) packet).processPacket(mc.getNetHandler());
+                        packet.processPacket(mc.getNetHandler());
                     } else if (packet instanceof S08PacketPlayerPosLook) {
-                        ((S08PacketPlayerPosLook) packet).processPacket(mc.getNetHandler());
+                        packet.processPacket(mc.getNetHandler());
                     } else if (packet instanceof S19PacketEntityStatus) {
-                        ((S19PacketEntityStatus) packet).processPacket(mc.getNetHandler());
+                        packet.processPacket(mc.getNetHandler());
                     } else if (packet instanceof S32PacketConfirmTransaction) {
-                        ((S32PacketConfirmTransaction) packet).processPacket(mc.getNetHandler());
+                        packet.processPacket(mc.getNetHandler());
                     }
                 } catch (Exception ex) {
                     ex.printStackTrace();
@@ -390,20 +372,12 @@ public class Velocity extends Module {
         if (target == null || mc.thePlayer == null) {
             return false;
         }
-        return rayTrace(mc.objectMouseOver, (float) range) != null;
+        return rayTrace() != null;
     }
 
     private boolean isInBadPosition() {
         if (mc.thePlayer == null) return false;
         return isInWeb(mc.thePlayer) || mc.thePlayer.isOnLadder() || mc.thePlayer.isInWater() || mc.thePlayer.isInLava();
-    }
-
-    private boolean isVanilla() {
-        return this.mode.getValue() == 0;
-    }
-
-    private boolean isJumpReset() {
-        return this.mode.getValue() == 1;
     }
 
     private boolean isReduce() {
@@ -433,14 +407,6 @@ public class Velocity extends Module {
         this.targetRotation = null;
         this.knockbackX = 0.0;
         this.knockbackZ = 0.0;
-    }
-
-    private void queueDelayedVelocity(PacketEvent event, S12PacketEntityVelocity packet, int ticks) {
-        Epilogue.delayManager.setDelayState(true, DelayModules.VELOCITY);
-        Epilogue.delayManager.delayedPacket.offer(packet);
-        event.setCancelled(true);
-        this.delayTicksLeft = Math.max(1, ticks);
-        this.delayedVelocityActive = true;
     }
 
     @EventTarget
@@ -643,8 +609,7 @@ public class Velocity extends Module {
             double distance = target != null ? mc.thePlayer.getDistanceToEntity(target) : 100.0;
 
             if (hasReceivedVelocity && !noattack) {
-                boolean canAttack = target != null &&
-                        this.watchdogReduceIsTargetInRaycastRange(target, 3.0) &&
+                boolean canAttack = this.watchdogReduceIsTargetInRaycastRange(target, 3.0) &&
                         MoveUtil.isMoving() &&
                         mc.thePlayer.isSprinting() &&
                         target != mc.thePlayer;
@@ -853,17 +818,12 @@ public class Velocity extends Module {
     private void onWatchdogReducePacketReceive(PacketEvent event) {
         if (!this.isEnabled() || !this.isWatchdogReduce()) return;
 
-        Packet<?> packet = event.getPacket();
-
         Entity target = this.getNearTarget();
 
-        if (watchdogReduceIsReducing ||
-                mc.thePlayer.ticksExisted < 3 ||
-                mc.thePlayer.isDead ||
-                mc.thePlayer.isSneaking() ||
-                isAuraBlocking() ||
-                (target != null && mc.thePlayer.getDistanceToEntity(target) <= 3.2)) {
-            return;
+        if (!watchdogReduceIsReducing && mc.thePlayer.ticksExisted >= 3 && !mc.thePlayer.isDead && !mc.thePlayer.isSneaking() && !isAuraBlocking()) {
+            if (target != null) {
+                mc.thePlayer.getDistanceToEntity(target);
+            }
         }
     }
 
@@ -905,15 +865,7 @@ public class Velocity extends Module {
         }
     }
 
-    private boolean watchdogReduceCanAttackTarget(Entity target, double range) {
-        if (target == null || mc.thePlayer == null) {
-            return false;
-        }
-
-        return RayCastUtil.inView(target);
-    }
-
-    private MovingObjectPosition rayTrace(Object objectMouseOver, float range) {
+    private MovingObjectPosition rayTrace() {
         if (mc.objectMouseOver != null && mc.objectMouseOver.entityHit != null) {
             return mc.objectMouseOver;
         }

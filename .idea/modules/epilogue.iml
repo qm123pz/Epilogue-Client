@@ -12,6 +12,7 @@
       <excludeFolder url="file://$MODULE_DIR$/../../run/mods" />
       <excludeFolder url="file://$MODULE_DIR$/../../run/resourcepacks" />
       <excludeFolder url="file://$MODULE_DIR$/../../run/saves" />
+      <excludeFolder url="file://$MODULE_DIR$/../../bin" />
     </content>
   </component>
 </module>
