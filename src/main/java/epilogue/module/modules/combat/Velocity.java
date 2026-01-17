@@ -35,7 +35,6 @@ import net.minecraft.network.play.client.C16PacketClientStatus;
 import java.text.DecimalFormat;
 import java.util.Deque;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.List;
 import java.util.ArrayList;
 
 public class Velocity extends Module {
@@ -202,6 +201,37 @@ public class Velocity extends Module {
             return;
         }
 
+        if (this.isWatchdogReduce() && this.watchdogReduceJumpReset.getValue()) {
+
+            this.watchdogReduceTicksCount++;
+
+            if (mc.thePlayer.hurtTime == 9 && this.watchdogReduceLastHurtTime != 9) {
+
+                if (mc.thePlayer.isSprinting() && mc.thePlayer.onGround &&
+                        !mc.gameSettings.keyBindJump.isKeyDown()) {
+
+                    this.watchdogReduceHitsCount++;
+
+                    boolean hitsCondition = this.watchdogReduceHitsCount >= this.watchdogReduceHitsUntilJump.getValue();
+
+                    boolean ticksCondition = this.watchdogReduceTicksCount >= this.watchdogReduceTicksUntilJump.getValue();
+
+                    if (hitsCondition || ticksCondition) {
+                        if (random.nextInt(100) < this.watchdogReduceChance.getValue()) {
+                            this.jumpFlag = true;
+
+                            ChatUtil.sendRaw("§7[WatchdogReduce] §fJumpreset (Hits: " +
+                                    this.watchdogReduceHitsCount + ", Ticks: " + this.watchdogReduceTicksCount + ")");
+
+                            this.watchdogReduceHitsCount = 0;
+                            this.watchdogReduceTicksCount = 0;
+                        }
+                    }
+                }
+            }
+
+            this.watchdogReduceLastHurtTime = mc.thePlayer.hurtTime;
+        }
     }
 
     private void watchdogReduceStartRotate(double knockbackX, double knockbackZ) {
@@ -846,7 +876,6 @@ public class Velocity extends Module {
 
         if (hasReceivedVelocity && !noattack && target != null &&
                 withinVelocityWindow &&
-                this.watchdogReduceCanAttackTarget(target, 3.0) &&
                 mc.thePlayer.isSwingInProgress &&
                 MoveUtil.isMoving() &&
                 mc.thePlayer.isSprinting() &&
@@ -933,21 +962,20 @@ public class Velocity extends Module {
 
     @EventTarget
     public void onLivingUpdate(LivingUpdateEvent event) {
+
         if (this.isWatchdog() && this.jump && this.watchdogJumpReset.getValue()) {
             if (mc.thePlayer != null && mc.thePlayer.onGround) {
                 mc.thePlayer.movementInput.jump = true;
             }
             this.jump = false;
         }
+
         else if (this.jumpFlag) {
             if (mc.thePlayer != null && mc.thePlayer.onGround) {
-                ChatUtil.sendRaw("§7[Velocity] §fExecuting JumpReset for " + this.mode.getModeString());
-            }
-
-            this.jumpFlag = false;
-            if (mc.thePlayer != null && mc.thePlayer.onGround) {
                 mc.thePlayer.movementInput.jump = true;
+                ChatUtil.sendRaw("§7[Velocity] §JumpReset");
             }
+            this.jumpFlag = false;
         }
     }
 
