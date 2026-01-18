@@ -63,16 +63,18 @@ public class BackTrack extends Module {
 
     @Override
     public void onEnabled() {
-        resetState();
+        packetQueue.clear();
+        positionHistory.clear();
+        recentPositions.clear();
+        realTargetPos = null;
+        lastRealTargetPos = null;
+        target = null;
+        attackTicks = 0;
     }
 
     @Override
     public void onDisabled() {
         releasePackets();
-        resetState();
-    }
-
-    private void resetState() {
         packetQueue.clear();
         positionHistory.clear();
         recentPositions.clear();
@@ -84,6 +86,7 @@ public class BackTrack extends Module {
 
     @EventTarget
     public void onTick(TickEvent event) {
+        if (!this.isEnabled()) return;
         if (event.getType() != EventType.PRE) return;
 
         if (target != null) {
@@ -153,6 +156,7 @@ public class BackTrack extends Module {
 
     @EventTarget
     public void onRender3D(Render3DEvent event) throws InterruptedException {
+        if (!this.isEnabled()) return;
         if (!this.predictPosition.getValue() || target == null || realTargetPos == null || lastRealTargetPos == null) {
             return;
         }
@@ -224,6 +228,7 @@ public class BackTrack extends Module {
 
     @EventTarget
     public void onPacket(PacketEvent event) {
+        if (!this.isEnabled()) return;
         if (event.isCancelled() || mc.thePlayer == null || mc.thePlayer.ticksExisted < 20) return;
 
         Packet<?> packet = event.getPacket();
@@ -306,6 +311,7 @@ public class BackTrack extends Module {
 
     @SubscribeEvent
     public void onWorldChange(WorldEvent.Load event) {
+        if (!this.isEnabled()) return;
         if (disableOnWorldChange.getValue() && isEnabled()) {
             toggle();
         }
