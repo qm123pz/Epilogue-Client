@@ -37,13 +37,11 @@ public class BackTrack extends Module {
 
     //This BackTrack By MyauPlus
 
-    public final IntValue latency = new IntValue("Latency delay", 200, 1, 1000);
-    public final FloatValue enemyDistance = new FloatValue("Enemy distance", 6.0F, 3.1F, 6.0F);
-    public final BooleanValue onlyCombat = new BooleanValue("Only during combat", true);
-    public final BooleanValue predictPosition = new BooleanValue("Render prediction", true);
-    public final BooleanValue useThemeColor = new BooleanValue("Use theme color", false);
-    public final IntValue boxColor = new IntValue("Box color [H]", 0, 0, 360);
-    public final BooleanValue disableOnWorldChange = new BooleanValue("Disable on world change", false);
+    public final IntValue latency = new IntValue("Track MS", 200, 1, 1000);
+    public final FloatValue enemyDistance = new FloatValue("Max Track Range", 6.0F, 3.1F, 6.0F);
+    public final BooleanValue onlyCombat = new BooleanValue("Only Attack", true);
+    public final BooleanValue predictPosition = new BooleanValue("Render Real Pos", true);
+    public final BooleanValue disableOnWorldChange = new BooleanValue("Disable On World Change", false);
 
     private final Queue<TimedPacket> packetQueue = new ConcurrentLinkedQueue<>();
     private final Deque<Vec3> positionHistory = new ConcurrentLinkedDeque<>();
@@ -53,10 +51,6 @@ public class BackTrack extends Module {
     private Vec3 lastRealTargetPos;
     private EntityPlayer target;
     private int attackTicks;
-
-    private static final int MAX_HISTORY_SIZE = 10;
-    private static final int FAST_MOVE_CHECK_TICKS = 5;
-    private static final double FAST_MOVE_THRESHOLD = 5.0;
 
     public BackTrack() {
         super("BackTrack", false);
@@ -74,7 +68,7 @@ public class BackTrack extends Module {
 
     @Override
     public void onDisabled() {
-        releasePackets(true);
+        releasePackets();
         resetState();
     }
 
@@ -111,20 +105,20 @@ public class BackTrack extends Module {
             Vec3 currentPos = target.getPositionVector();
             recentPositions.addLast(currentPos);
 
-            if (recentPositions.size() > FAST_MOVE_CHECK_TICKS) {
+            if (recentPositions.size() > 5) {
                 recentPositions.removeFirst();
             }
 
-            if (recentPositions.size() == FAST_MOVE_CHECK_TICKS) {
+            if (recentPositions.size() == 5) {
                 Vec3 oldestPos = recentPositions.getFirst();
-                if (oldestPos.distanceTo(currentPos) > FAST_MOVE_THRESHOLD) {
+                if (oldestPos.distanceTo(currentPos) > 5.0) {
                     resetAndRelease();
                     return;
                 }
             }
 
             positionHistory.addLast(currentPos);
-            if (positionHistory.size() > MAX_HISTORY_SIZE) {
+            if (positionHistory.size() > 10) {
                 positionHistory.removeFirst();
             }
 
@@ -158,14 +152,14 @@ public class BackTrack extends Module {
     }
 
     @EventTarget
-    public void onRender3D(Render3DEvent event) {
+    public void onRender3D(Render3DEvent event) throws InterruptedException {
         if (!this.predictPosition.getValue() || target == null || realTargetPos == null || lastRealTargetPos == null) {
             return;
         }
 
         Vec3 renderPos = getSmoothedPosition(event.getPartialTicks());
 
-        Color color = useThemeColor.getValue() ? new Color(0xFFFF0000) : Color.getHSBColor((boxColor.getValue() % 360) / 360.0f, 1.0f, 1.0f);
+        Color color = new Color(0xFFFF0000);
 
         float size = target.getCollisionBorderSize();
         double width = target.width / 2.0 + size;
@@ -323,10 +317,10 @@ public class BackTrack extends Module {
         lastRealTargetPos = null;
         positionHistory.clear();
         recentPositions.clear();
-        releasePackets(true);
+        releasePackets();
     }
 
-    private void releasePackets(boolean immediately) {//immediately == true时强制释放
+    private void releasePackets() {
         if (packetQueue.isEmpty()) return;
 
         while (!packetQueue.isEmpty()) {

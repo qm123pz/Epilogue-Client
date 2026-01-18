@@ -10,6 +10,7 @@ import epilogue.events.TickEvent;
 import epilogue.module.Module;
 import epilogue.util.TimerUtil;
 import epilogue.value.values.*;
+import lombok.Getter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
@@ -26,6 +27,7 @@ public class SuperKnockBack extends Module {
     public final FloatValue duration = new FloatValue("Duration", 1.5F, 1.0F, 5.0F, () -> this.mode.getValue() == 5);
     public final BooleanValue intelligent = new BooleanValue("Intelligent", false);
     public final BooleanValue onlyGround = new BooleanValue("Only Gound", true);
+    @Getter
     private boolean shouldSprintReset;
     private EntityLivingBase target;
     private final TimerUtil timer = new TimerUtil();
@@ -46,7 +48,7 @@ public class SuperKnockBack extends Module {
             return;
         }
         Entity targetEntity = event.getTarget();
-        if (targetEntity != null && targetEntity instanceof EntityLivingBase) {
+        if (targetEntity instanceof EntityLivingBase) {
             this.target = (EntityLivingBase) targetEntity;
         }
     }
@@ -114,7 +116,7 @@ public class SuperKnockBack extends Module {
         }
         if (this.mode.getValue() == 1) {
             if (this.target != null && this.isMoving()) {
-                if ((this.onlyGround.getValue() && mc.thePlayer.onGround) || !this.onlyGround.getValue()) {
+                if (!this.onlyGround.getValue() || mc.thePlayer.onGround) {
                     mc.thePlayer.sprintingTicksLeft = 0;
                 }
                 this.target = null;
@@ -171,4 +173,5 @@ public class SuperKnockBack extends Module {
     private boolean isMoving() {
         return mc.thePlayer.moveForward != 0.0F || mc.thePlayer.moveStrafing != 0.0F;
     }
+
 }
