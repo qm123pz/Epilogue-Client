@@ -82,21 +82,30 @@ public class Velocity extends Module {
     private int watchdogReduceTicksCount = 0;
     private int watchdogReduceLastHurtTime = 0;
 
-    public final ModeValue mode = new ModeValue("Mode", 0, new String[]{"Mix", "WatchdogReduce"});
+    public final ModeValue mode = new ModeValue("Mode", 0, new String[]{"Reduce", "WatchdogReduce"});
 
     public final PercentValue chance = new PercentValue("Chance", 100);
 
+    public final BooleanValue mixDelay = new BooleanValue("Delay", true, () -> this.mode.getValue() == 0);
+    public final IntValue mixDelayTicks = new IntValue("Delay Ticks", 1, 1, 20, () -> this.mode.getValue() == 0 && this.mixDelay.getValue());
+    public final BooleanValue mixDelayOnlyInGround = new BooleanValue("Delay Only In Ground", true, () -> this.mode.getValue() == 0 && this.mixDelay.getValue());
     public final BooleanValue mixReduce = new BooleanValue("Reduce", false, () -> this.mode.getValue() == 0);
     public final BooleanValue mixJumpReset = new BooleanValue("Jump Reset", true, () -> this.mode.getValue() == 0);
+
     public final BooleanValue mixRotate = new BooleanValue("Rotate", false, () -> this.mode.getValue() == 0);
     public final BooleanValue mixRotateOnlyInGround = new BooleanValue("Rotate Only In Ground", true, () -> this.mode.getValue() == 0 && this.mixRotate.getValue());
     public final BooleanValue mixAutoMove = new BooleanValue("Auto Move", true, () -> this.mode.getValue() == 0 && this.mixRotate.getValue());
     public final IntValue mixRotateTicks = new IntValue("Rotate Ticks", 3, 1, 20, () -> this.mode.getValue() == 0 && this.mixRotate.getValue());
 
+    public final BooleanValue reduceOnlySwinging = new BooleanValue("Reduce Only Swinging", false, () -> this.mode.getValue() == 0 && this.mixReduce.getValue());
+    public final BooleanValue reduceOnlyMoving = new BooleanValue("Reduce Only Moving", false, () -> this.mode.getValue() == 0 && this.mixReduce.getValue());
+
     public final PercentValue watchdogReduceChance = new PercentValue("Chance", 100, () -> this.mode.getValue() == 1);
+    public final BooleanValue watchdogReduceLegitTiming = new BooleanValue("Legit Timing", false, () -> this.mode.getValue() == 1);
     public final IntValue watchdogReduceHitsUntilJump = new IntValue("Hits Until Jump", 2, 1, 10, () -> this.isWatchdogReduce());
     public final IntValue watchdogReduceTicksUntilJump = new IntValue("Ticks Until Jump", 2, 1, 100, () -> this.isWatchdogReduce());
     public final BooleanValue watchdogReduceDelay = new BooleanValue("Delay", false, () -> this.isWatchdogReduce());
+    public final IntValue watchdogReduceDelayTicks = new IntValue("Delay Ticks", 1, 1, 20, () -> this.isWatchdogReduce() && this.watchdogReduceDelay.getValue());
     public final BooleanValue watchdogReduceRotate = new BooleanValue("Rotate", false, () -> this.isWatchdogReduce());
     public final BooleanValue watchdogReduceRotateOnlyInGround = new BooleanValue("Rotate Only In Ground", true, () -> this.isWatchdogReduce() && this.watchdogReduceRotate.getValue());
     public final BooleanValue watchdogReduceAutoMove = new BooleanValue("Auto Move", true, () -> this.isWatchdogReduce() && this.watchdogReduceRotate.getValue());
@@ -350,6 +359,13 @@ public class Velocity extends Module {
         AxisAlignedBB bb = entity.getEntityBoundingBox();
         if (bb == null) return false;
         return RotationUtil.rayTrace(bb, mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch, 3.0) != null;
+    }
+
+    private boolean watchdogReduceIsTargetInRaycastRange(Entity target, double range) {
+        if (target == null || mc.thePlayer == null) {
+            return false;
+        }
+        return rayTrace(mc.objectMouseOver, (float) range) != null;
     }
 
     private boolean isInBadPosition() {
@@ -709,18 +725,26 @@ public class Velocity extends Module {
     private void onWatchdogReduceUpdate(UpdateEvent event) {
         if (!this.isEnabled() || !this.isWatchdogReduce()) return;
 
-        Entity target = this.getNearTarget();
+        Aura aura = (Aura) Epilogue.moduleManager.modules.get(Aura.class);
+        if (aura == null || !aura.isEnabled() || aura.getTarget() == null) {
+            return;
+        }
+
+        Entity target = aura.getTarget();
 
         boolean withinVelocityWindow = ticksSinceVelocity <= 3;
 
+        boolean canAttackTarget = watchdogReduceCanAttackTarget(target, 3.0);
+
         if (hasReceivedVelocity && !noattack && target != null &&
                 withinVelocityWindow &&
-                mc.thePlayer.isSwingInProgress &&
                 MoveUtil.isMoving() &&
                 mc.thePlayer.isSprinting() &&
-                target != mc.thePlayer) {
+                target != mc.thePlayer &&
+                canAttackTarget) {
 
-            ChatUtil.sendRaw("§b[WatchdogReduce] §bAttack Ticks: " + ticksSinceVelocity + ")");
+            ChatUtil.sendRaw("§b[E] §bAttack Tick: " + ticksSinceVelocity + " | Reduce0.4 | motionX : " +
+                    mc.thePlayer.motionX + " | motionZ : " + mc.thePlayer.motionZ);
 
             Epilogue.eventManager.call(new AttackEvent(target));
 
