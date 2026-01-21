@@ -17,13 +17,10 @@ import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.world.World;
 import epilogue.Epilogue;
 import epilogue.enums.BlinkModules;
-import epilogue.enums.DelayModules;
 import epilogue.event.EventTarget;
 import epilogue.event.types.EventType;
 import epilogue.events.*;
 import epilogue.module.Module;
-import epilogue.module.modules.movement.LongJump;
-import epilogue.util.MoveUtil;
 import epilogue.util.RotationUtil;
 import epilogue.management.RotationState;
 
@@ -34,14 +31,10 @@ import java.util.List;
 public class Velocity extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
     private int chanceCounter = 0;
-    private int delayChanceCounter = 0;
     private boolean pendingExplosion = false;
     private boolean allowNext = true;
-    private boolean delayFlag = false;
-    private boolean delayActive = false;
     private boolean jumpFlag = false;
     private long blinkStartTime = System.currentTimeMillis();
-    private long delayStartTime = 0L;
     private boolean shouldCancelAttack;
     private boolean shouldSprintReset = false;
 
@@ -52,8 +45,6 @@ public class Velocity extends Module {
     public final PercentValue explosionHorizontal = new PercentValue("Explosions Horizontal", 100, () -> this.mode.getValue() == 0);
     public final PercentValue explosionVertical = new PercentValue("Explosions Vertical", 100, () -> this.mode.getValue() == 0);
     public final BooleanValue fakeCheck = new BooleanValue("Check Fake", true);
-    public final IntValue delayTicks = new IntValue("Delay Ticks", 1, 1, 20, () -> this.mode.getValue() == 2);
-    public final PercentValue delayChance = new PercentValue("Delay Change", 100, () -> this.mode.getValue() == 2);
     public final BooleanValue reduce = new BooleanValue("Reduce", true, () -> this.mode.getValue() == 2);
     public final BooleanValue reduceOnlyNoBlocking = new BooleanValue("Reduce Only Not Blocking", true, () -> this.mode.getValue() == 2 && this.reduce.getValue());
     public final BooleanValue reduceOnlyMoving = new BooleanValue("Only Moving", false, () -> this.mode.getValue() == 2 && this.reduce.getValue());
@@ -72,11 +63,6 @@ public class Velocity extends Module {
 
     private boolean isInLiquidOrWeb() {
         return mc.thePlayer != null && (mc.thePlayer.isInWater() || mc.thePlayer.isInLava() || ((IAccessorEntity) mc.thePlayer).getIsInWeb());
-    }
-
-    private boolean canDelay() {
-        Aura aura = (Aura) Epilogue.moduleManager.modules.get(Aura.class);
-        return mc.thePlayer.onGround && (aura == null || !aura.isEnabled() || !aura.shouldAutoBlock());
     }
 
     private boolean isMoving() {
@@ -257,33 +243,6 @@ public class Velocity extends Module {
                 if (packet.getEntityID() != mc.thePlayer.getEntityId()) {
                     return;
                 }
-                if (this.mode.getValue() == 2) {
-                    LongJump longJump = (LongJump) Epilogue.moduleManager.modules.get(LongJump.class);
-                    boolean canStartJump = longJump != null && longJump.isEnabled() && longJump.canStartJump();
-                    if (
-                            //!this.delayFlag &&
-                                    !this.isInLiquidOrWeb()
-                                            //&& !this.pendingExplosion
-                            //&& !this.allowNext
-                            //&& !canStartJump
-                        ) {
-                        this.delayChanceCounter = this.delayChanceCounter % 100 + this.delayChance.getValue();
-                        if (this.delayChanceCounter >= 100) {
-                            Epilogue.delayManager.setDelayState(true, DelayModules.VELOCITY);
-                            if (dbg.getValue()) ChatUtil.sendFormatted("Delayed");
-                            Epilogue.delayManager.delayedPacket.offer(packet);
-                            event.setCancelled(true);
-                            this.delayFlag = true;
-                            this.delayStartTime = System.currentTimeMillis();
-                            if (this.blink.getValue()) {
-                                this.blinkStartTime = System.currentTimeMillis();
-                                Epilogue.blinkManager.setBlinkState(true, BlinkModules.BLINK);
-                                if (dbg.getValue()) ChatUtil.sendFormatted("Blinked");
-                            }
-                            this.delayChanceCounter = 0;
-                        }
-                    }
-                }
             } else if (event.getPacket() instanceof S19PacketEntityStatus) {
                 S19PacketEntityStatus packet = (S19PacketEntityStatus) event.getPacket();
                 World world = mc.theWorld;
@@ -314,27 +273,6 @@ public class Velocity extends Module {
         if (event.getType() != EventType.POST || this.mode.getValue() != 2) {
             return;
         }
-        if (this.delayFlag) {
-            boolean shouldRelease = false;
-            int delayValue = this.delayTicks.getValue();
-            if (delayValue >= 1 && delayValue <= 3) {
-                long requiredDelay = delayValue == 1 ? 60L : (delayValue == 2 ? 95L : 100L);
-                if (System.currentTimeMillis() - this.delayStartTime >= requiredDelay) {
-                    shouldRelease = true;
-                }
-            } else {
-                shouldRelease = this.canDelay() || this.isInLiquidOrWeb() || Epilogue.delayManager.getDelay() >= delayValue;
-            }
-            if (shouldRelease) {
-                Epilogue.delayManager.setDelayState(false, DelayModules.VELOCITY);
-                this.delayFlag = false;
-                Epilogue.blinkManager.setBlinkState(false, BlinkModules.BLINK);
-            }
-        }
-        if (this.delayActive) {
-            MoveUtil.setSpeed(MoveUtil.getSpeed(), MoveUtil.getMoveYaw());
-            this.delayActive = false;
-        }
         if (this.blink.getValue()) {
             Epilogue.blinkManager.setBlinkState(System.currentTimeMillis() - this.blinkStartTime < 95, BlinkModules.BLINK);
         }
@@ -361,11 +299,7 @@ public class Velocity extends Module {
         this.pendingExplosion = false;
         this.allowNext = true;
         this.chanceCounter = 0;
-        this.delayChanceCounter = 0;
-        this.delayFlag = false;
-        this.delayActive = false;
         this.blinkStartTime = System.currentTimeMillis();
-        this.delayStartTime = 0L;
         this.jumpFlag = false;
     }
 
@@ -375,15 +309,7 @@ public class Velocity extends Module {
         this.pendingExplosion = false;
         this.allowNext = true;
         this.chanceCounter = 0;
-        this.delayChanceCounter = 0;
-        this.delayFlag = false;
-        this.delayActive = false;
-        this.delayStartTime = 0L;
         this.jumpFlag = false;
-        if (Epilogue.delayManager.getDelayModule() == DelayModules.VELOCITY) {
-            Epilogue.delayManager.setDelayState(false, DelayModules.VELOCITY);
-        }
-        Epilogue.delayManager.delayedPacket.clear();
         Epilogue.blinkManager.setBlinkState(false, BlinkModules.BLINK);
     }
 
