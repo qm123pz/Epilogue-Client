@@ -261,9 +261,13 @@ public class Velocity extends Module {
                 if (this.mode.getValue() == 2) {
                     LongJump longJump = (LongJump) Epilogue.moduleManager.modules.get(LongJump.class);
                     boolean canStartJump = longJump != null && longJump.isEnabled() && longJump.canStartJump();
-                    if (!this.reverseFlag && !this.isInLiquidOrWeb() && !this.pendingExplosion
+                    if (
+                            //!this.reverseFlag &&
+                                    !this.isInLiquidOrWeb()
+                                            //&& !this.pendingExplosion
                             //&& !this.allowNext
-                            && !canStartJump) {
+                            //&& !canStartJump
+                        ) {
                         this.delayChanceCounter = this.delayChanceCounter % 100 + this.delayChance.getValue();
                         if (this.delayChanceCounter >= 100) {
                             Epilogue.delayManager.setDelayState(true, DelayModules.VELOCITY);
