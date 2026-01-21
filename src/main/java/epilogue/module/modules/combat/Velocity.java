@@ -9,7 +9,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.play.client.C02PacketUseEntity;
-import net.minecraft.network.play.client.C0APacketAnimation;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
 import net.minecraft.network.play.server.S19PacketEntityStatus;
 import net.minecraft.network.play.server.S27PacketExplosion;
@@ -38,11 +37,11 @@ public class Velocity extends Module {
     private int delayChanceCounter = 0;
     private boolean pendingExplosion = false;
     private boolean allowNext = true;
-    private boolean reverseFlag = false;
+    private boolean delayFlag = false;
     private boolean delayActive = false;
     private boolean jumpFlag = false;
     private long blinkStartTime = System.currentTimeMillis();
-    private long reverseStartTime = 0L;
+    private long delayStartTime = 0L;
     private boolean shouldCancelAttack;
     private boolean shouldSprintReset = false;
 
@@ -262,7 +261,7 @@ public class Velocity extends Module {
                     LongJump longJump = (LongJump) Epilogue.moduleManager.modules.get(LongJump.class);
                     boolean canStartJump = longJump != null && longJump.isEnabled() && longJump.canStartJump();
                     if (
-                            //!this.reverseFlag &&
+                            //!this.delayFlag &&
                                     !this.isInLiquidOrWeb()
                                             //&& !this.pendingExplosion
                             //&& !this.allowNext
@@ -274,8 +273,8 @@ public class Velocity extends Module {
                             if (dbg.getValue()) ChatUtil.sendFormatted("Delayed");
                             Epilogue.delayManager.delayedPacket.offer(packet);
                             event.setCancelled(true);
-                            this.reverseFlag = true;
-                            this.reverseStartTime = System.currentTimeMillis();
+                            this.delayFlag = true;
+                            this.delayStartTime = System.currentTimeMillis();
                             if (this.blink.getValue()) {
                                 this.blinkStartTime = System.currentTimeMillis();
                                 Epilogue.blinkManager.setBlinkState(true, BlinkModules.BLINK);
@@ -315,12 +314,12 @@ public class Velocity extends Module {
         if (event.getType() != EventType.POST || this.mode.getValue() != 2) {
             return;
         }
-        if (this.reverseFlag) {
+        if (this.delayFlag) {
             boolean shouldRelease = false;
             int delayValue = this.delayTicks.getValue();
             if (delayValue >= 1 && delayValue <= 3) {
                 long requiredDelay = delayValue == 1 ? 60L : (delayValue == 2 ? 95L : 100L);
-                if (System.currentTimeMillis() - this.reverseStartTime >= requiredDelay) {
+                if (System.currentTimeMillis() - this.delayStartTime >= requiredDelay) {
                     shouldRelease = true;
                 }
             } else {
@@ -328,7 +327,7 @@ public class Velocity extends Module {
             }
             if (shouldRelease) {
                 Epilogue.delayManager.setDelayState(false, DelayModules.VELOCITY);
-                this.reverseFlag = false;
+                this.delayFlag = false;
                 Epilogue.blinkManager.setBlinkState(false, BlinkModules.BLINK);
             }
         }
@@ -363,10 +362,10 @@ public class Velocity extends Module {
         this.allowNext = true;
         this.chanceCounter = 0;
         this.delayChanceCounter = 0;
-        this.reverseFlag = false;
+        this.delayFlag = false;
         this.delayActive = false;
         this.blinkStartTime = System.currentTimeMillis();
-        this.reverseStartTime = 0L;
+        this.delayStartTime = 0L;
         this.jumpFlag = false;
     }
 
@@ -377,9 +376,9 @@ public class Velocity extends Module {
         this.allowNext = true;
         this.chanceCounter = 0;
         this.delayChanceCounter = 0;
-        this.reverseFlag = false;
+        this.delayFlag = false;
         this.delayActive = false;
-        this.reverseStartTime = 0L;
+        this.delayStartTime = 0L;
         this.jumpFlag = false;
         if (Epilogue.delayManager.getDelayModule() == DelayModules.VELOCITY) {
             Epilogue.delayManager.setDelayState(false, DelayModules.VELOCITY);
