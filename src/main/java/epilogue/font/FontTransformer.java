@@ -30,6 +30,7 @@ public class FontTransformer {
     private void loadFonts() {
         loadFont("icon", "/assets/minecraft/epilogue/font/icon.ttf");
         loadFont("icon2", "/assets/minecraft/epilogue/font/icon2.ttf");
+        loadFont("skeetui", "/assets/minecraft/epilogue/font/skeetui.ttf");
         loadFont("Arial", "/assets/minecraft/epilogue/font/Arial.ttf");
         loadFont("ArialBold", "/assets/minecraft/epilogue/font/ArialBold.ttf");
         loadFont("RobotoMedium", "/assets/minecraft/epilogue/font/Roboto-Medium.ttf");

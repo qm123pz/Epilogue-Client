@@ -17,6 +17,7 @@ import epilogue.util.render.ColorUtil;
 import epilogue.util.render.PostProcessing;
 import epilogue.util.render.RenderUtil;
 import epilogue.value.values.IntValue;
+import epilogue.value.values.ModeValue;
 import org.lwjgl.opengl.GL11;
 
 import java.awt.Color;
@@ -34,25 +35,31 @@ public class PotionEffects extends Module {
 
     private final ResourceLocation inventoryTexture = new ResourceLocation("textures/gui/container/inventory.png");
 
-    public final IntValue round = new IntValue("Round", 20, 0, 30);
+    public final ModeValue mode = new ModeValue("Mode", 0, new String[]{"Epilogue", "Exhibition"});
+    public final IntValue round = new IntValue("Round", 13, 0, 30, () -> this.mode.getValue() == 0);
 
     public PotionEffects() {
         super("PotionEffects", false);
     }
 
     public void renderAt(float x, float y) {
+        if ("Exhibition".equalsIgnoreCase(mode.getModeString())) {
+            renderAtExhibition(x, y);
+            return;
+        }
         if (mc.thePlayer == null || mc.theWorld == null) return;
 
         Collection<PotionEffect> active = mc.thePlayer.getActivePotionEffects();
         boolean preview = (mc.currentScreen instanceof net.minecraft.client.gui.GuiChat) || (mc.currentScreen instanceof GuiChat);
-        if ((active == null || active.isEmpty()) && !preview) return;
 
         List<PotionEffect> potions;
-        if (active == null || active.isEmpty()) {
+        if ((active == null || active.isEmpty()) && preview) {
             potions = new ArrayList<>();
             potions.add(new PotionEffect(Potion.moveSpeed.id, 20 * 120, 1));
             potions.add(new PotionEffect(Potion.damageBoost.id, 20 * 45, 0));
             potions.add(new PotionEffect(Potion.fireResistance.id, 20 * 300, 0));
+        } else if (active == null || active.isEmpty()) {
+            potions = new ArrayList<>();
         } else {
             potions = new ArrayList<>(active);
             potions.sort(Comparator.comparingInt(PotionEffect::getDuration).reversed());
@@ -91,7 +98,7 @@ public class PotionEffects extends Module {
 
         float width = Math.max(maxWidth, 80f);
         float headerHeight = fontHeight + padding * 2;
-        float targetHeight = headerHeight + 1.25f + 7.5f + listHeight + 4.5f;
+        float targetHeight = headerHeight + 1.25f + 7.5f + (potions.isEmpty() ? padding : listHeight) + 4.5f;
 
         if (currentHeight <= 0.0f) {
             currentHeight = targetHeight;
@@ -182,39 +189,148 @@ public class PotionEffects extends Module {
         PostProcessing.endBloom(bloomBuffer);
     }
 
-    public float getCurrentWidth() {
+    private void renderAtExhibition(float x, float y) {
+        if (mc.thePlayer == null || mc.theWorld == null) return;
+
+        Collection<PotionEffect> active = mc.thePlayer.getActivePotionEffects();
+        boolean preview = (mc.currentScreen instanceof net.minecraft.client.gui.GuiChat) || (mc.currentScreen instanceof GuiChat);
+        if ((active == null || active.isEmpty()) && !preview) return;
+
+        net.minecraft.client.gui.ScaledResolution sr = new net.minecraft.client.gui.ScaledResolution(mc);
+        float widgetWidth = getCurrentWidthExhibition();
+        boolean rightAligned = (x + widgetWidth) > (sr.getScaledWidth() / 2.0f);
+
+        List<PotionEffect> potions;
+        if (active == null || active.isEmpty()) {
+            potions = new ArrayList<>();
+            potions.add(new PotionEffect(Potion.moveSpeed.id, 20 * 120, 1));
+            potions.add(new PotionEffect(Potion.damageBoost.id, 20 * 45, 0));
+            potions.add(new PotionEffect(Potion.fireResistance.id, 20 * 300, 0));
+        } else {
+            potions = new ArrayList<>(active);
+        }
+
+        potions.sort(Comparator.comparingInt(PotionEffect::getDuration).reversed());
+
+        float lineHeight = 9.0f;
+        float widgetHeight = Math.max(20f, potions.size() * lineHeight);
+        boolean bottomAligned = (y + widgetHeight) > (sr.getScaledHeight() / 2.0f);
+
+        float yOff = 0.0f;
+        for (PotionEffect potionEffect : potions) {
+            Potion potionType = Potion.potionTypes[potionEffect.getPotionID()];
+            if (potionType == null) continue;
+            String potionName = I18n.format(potionType.getName());
+
+            if (potionEffect.getAmplifier() == 1) {
+                potionName = potionName + " II";
+            } else if (potionEffect.getAmplifier() == 2) {
+                potionName = potionName + " III";
+            } else if (potionEffect.getAmplifier() == 3) {
+                potionName = potionName + " IV";
+            }
+
+            String type = "";
+            if (potionEffect.getDuration() < 600 && potionEffect.getDuration() > 300) {
+                type = type + " §6" + Potion.getDurationString(potionEffect);
+            } else if (potionEffect.getDuration() < 300) {
+                type = type + " §c" + Potion.getDurationString(potionEffect);
+            } else if (potionEffect.getDuration() > 600) {
+                type = type + " §7" + Potion.getDurationString(potionEffect);
+            }
+
+            GlStateManager.pushMatrix();
+            int nameColor = new Color(potionType.getLiquidColor()).getRGB();
+            float drawY = bottomAligned ? (y + widgetHeight - lineHeight - yOff) : (y + yOff);
+            if (rightAligned) {
+                float lineWidth = mc.fontRendererObj.getStringWidth(type + potionName);
+                float startX = x + (widgetWidth - lineWidth);
+                mc.fontRendererObj.drawString(potionName, startX, drawY, nameColor, true);
+                mc.fontRendererObj.drawString(type, startX + mc.fontRendererObj.getStringWidth(potionName), drawY, 0xFFFFFFFF, true);
+            } else {
+                mc.fontRendererObj.drawString(potionName, x, drawY, nameColor, true);
+                mc.fontRendererObj.drawString(type, x + mc.fontRendererObj.getStringWidth(potionName), drawY, 0xFFFFFFFF, true);
+            }
+            GlStateManager.popMatrix();
+            yOff += lineHeight;
+        }
+        currentHeight = widgetHeight;
+    }
+
+    private float getCurrentWidthExhibition() {
         Collection<PotionEffect> active = mc.thePlayer != null ? mc.thePlayer.getActivePotionEffects() : null;
         if (active == null || active.isEmpty()) return 80f;
+
+        float max = 80f;
+        for (PotionEffect potionEffect : active) {
+            Potion potionType = Potion.potionTypes[potionEffect.getPotionID()];
+            if (potionType == null) continue;
+            String potionName = I18n.format(potionType.getName());
+            if (potionEffect.getAmplifier() == 1) {
+                potionName = potionName + " II";
+            } else if (potionEffect.getAmplifier() == 2) {
+                potionName = potionName + " III";
+            } else if (potionEffect.getAmplifier() == 3) {
+                potionName = potionName + " IV";
+            }
+
+            String type = "";
+            if (potionEffect.getDuration() < 600 && potionEffect.getDuration() > 300) {
+                type = type + " §6" + Potion.getDurationString(potionEffect);
+            } else if (potionEffect.getDuration() < 300) {
+                type = type + " §c" + Potion.getDurationString(potionEffect);
+            } else if (potionEffect.getDuration() > 600) {
+                type = type + " §7" + Potion.getDurationString(potionEffect);
+            }
+
+            float w = mc.fontRendererObj.getStringWidth(potionName + type);
+            if (w > max) max = w;
+        }
+        return max;
+    }
+
+    public float getCurrentWidth() {
+        if ("Exhibition".equalsIgnoreCase(mode.getModeString())) {
+            return getCurrentWidthExhibition();
+        }
+        Collection<PotionEffect> active = mc.thePlayer != null ? mc.thePlayer.getActivePotionEffects() : null;
+
+        FontTransformer transformer = FontTransformer.getInstance();
+        Font font = transformer.getFont("OpenSansSemiBold", 32);
+
+        if (active == null || active.isEmpty()) {
+            float padding = 5f;
+            String title = "Potions";
+            float titleWidth = CustomFontRenderer.getStringWidth(title, font);
+            return Math.max(titleWidth + padding * 2, 80f);
+        }
 
         List<PotionEffect> potions = new ArrayList<>(active);
         potions.sort(Comparator.comparingInt(PotionEffect::getDuration).reversed());
 
-        FontTransformer transformer = FontTransformer.getInstance();
-        Font font = transformer.getFont("OpenSansSemiBold", 32);
-        if (font == null) font = transformer.getFont("Arial", 32);
-        if (font == null) return 80f;
+        float max = 80f;
+        for (PotionEffect potionEffect : potions) {
+            Potion potionType = Potion.potionTypes[potionEffect.getPotionID()];
+            if (potionType == null) continue;
+            String potionName = I18n.format(potionType.getName());
+            if (potionEffect.getAmplifier() > 0) {
+                potionName = potionName + " " + I18n.format("enchantment.level." + (potionEffect.getAmplifier() + 1));
+            }
 
-        float padding = 5f;
-        String title = "Potions";
-        float titleWidth = CustomFontRenderer.getStringWidth(title, font);
-        float maxWidth = titleWidth + padding * 2;
+            String durationText = Potion.getDurationString(potionEffect);
 
-        for (PotionEffect effect : potions) {
-            Potion potion = Potion.potionTypes[effect.getPotionID()];
-            if (potion == null) continue;
-            String potionName = I18n.format(potion.getName());
-            String amp = effect.getAmplifier() > 0 ? " " + I18n.format("enchantment.level." + (effect.getAmplifier() + 1)) : "";
-            String nameText = potionName + amp;
-            String durationText = Potion.getDurationString(effect);
-            float nameW = CustomFontRenderer.getStringWidth(nameText, font);
-            float durW = CustomFontRenderer.getStringWidth(durationText, font);
-            float localWidth = nameW + durW + padding * 3 + 12f;
-            if (localWidth > maxWidth) maxWidth = localWidth;
+            float w = CustomFontRenderer.getStringWidth(potionName + durationText, font);
+            if (w > max) max = w;
         }
-        return Math.max(maxWidth, 80f);
+        return max;
     }
 
     public float getCurrentHeight() {
+        if ("Exhibition".equalsIgnoreCase(mode.getModeString())) {
+            Collection<PotionEffect> active = mc.thePlayer != null ? mc.thePlayer.getActivePotionEffects() : null;
+            int count = active == null ? 0 : active.size();
+            return Math.max(20f, count * 9.0f);
+        }
         return Math.max(20f, currentHeight);
     }
 

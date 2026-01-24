@@ -314,7 +314,7 @@ public class Aura extends Module {
         return RotationUtil.distanceToBox(axisAlignedBB) <= (double) this.swingRange.getValue();
     }
 
-    private boolean isInAttackRange(EntityLivingBase entityLivingBase) {
+    public boolean isInAttackRange(EntityLivingBase entityLivingBase) {
         return RotationUtil.distanceToEntity(entityLivingBase) <= (double) this.attackRange.getValue();
     }
 

@@ -11,42 +11,71 @@ public final class Fonts {
     private static final FontTransformer TRANSFORMER = FontTransformer.getInstance();
     private static final Minecraft MC = Minecraft.getMinecraft();
     private static final Font FALLBACK_TINY = firstFont(
-            TRANSFORMER.getFont("MicrosoftYaHei", 30f),
-            TRANSFORMER.getFont("MicrosoftYaHei Bold", 30f)
+            TRANSFORMER.getFont("MicrosoftYaHei", 28f),
+            TRANSFORMER.getFont("MicrosoftYaHei Bold", 28f)
     );
     private static final Font FALLBACK_SMALL = firstFont(
-            TRANSFORMER.getFont("MicrosoftYaHei", 34f),
-            TRANSFORMER.getFont("MicrosoftYaHei Bold", 34f)
+            TRANSFORMER.getFont("MicrosoftYaHei", 32f),
+            TRANSFORMER.getFont("MicrosoftYaHei Bold", 32f)
     );
     private static final Font FALLBACK_MEDIUM = firstFont(
-            TRANSFORMER.getFont("MicrosoftYaHei", 38f),
-            TRANSFORMER.getFont("MicrosoftYaHei Bold", 38f)
+            TRANSFORMER.getFont("MicrosoftYaHei", 36f),
+            TRANSFORMER.getFont("MicrosoftYaHei Bold", 36f)
     );
     private static final Font FALLBACK_HEADING = firstFont(
-            TRANSFORMER.getFont("MicrosoftYaHei Bold", 48f),
-            TRANSFORMER.getFont("MicrosoftYaHei", 48f)
+            TRANSFORMER.getFont("MicrosoftYaHei Bold", 44f),
+            TRANSFORMER.getFont("MicrosoftYaHei", 44f)
     );
     private static final Font FALLBACK_TITLE = firstFont(
-            TRANSFORMER.getFont("MicrosoftYaHei Bold", 60f),
-            TRANSFORMER.getFont("MicrosoftYaHei", 60f)
+            TRANSFORMER.getFont("MicrosoftYaHei Bold", 54f),
+            TRANSFORMER.getFont("MicrosoftYaHei", 54f)
     );
     private static final Font TITLE = firstFont(
-            TRANSFORMER.getFont("Inter_Bold", 60f)
+            TRANSFORMER.getFont("Inter_Bold", 54f),
+            TRANSFORMER.getFont("Inter_SemiBold", 54f)
     );
     private static final Font HEADING = firstFont(
-            TRANSFORMER.getFont("Inter_SemiBold", 48f)
+            TRANSFORMER.getFont("Inter_SemiBold", 44f),
+            TRANSFORMER.getFont("Inter_Medium", 44f)
+    );
+    private static final Font MEDIUM_BOLD = firstFont(
+            TRANSFORMER.getFont("Inter_SemiBold", 36f),
+            TRANSFORMER.getFont("Inter_Medium", 36f)
     );
     private static final Font MEDIUM = firstFont(
-            TRANSFORMER.getFont("Inter_Medium", 38f)
+            TRANSFORMER.getFont("Inter_Medium", 36f),
+            TRANSFORMER.getFont("Inter_Regular", 36f)
+    );
+    private static final Font SMALL_BOLD = firstFont(
+            TRANSFORMER.getFont("Inter_Medium", 32f),
+            TRANSFORMER.getFont("Inter_Regular", 32f)
     );
     private static final Font SMALL = firstFont(
-            TRANSFORMER.getFont("Inter_Regular", 34f)
+            TRANSFORMER.getFont("Inter_Regular", 32f)
+    );
+    private static final Font SMALLER_BOLD = firstFont(
+            TRANSFORMER.getFont("Inter_Medium", 28f),
+            TRANSFORMER.getFont("Inter_Regular", 28f)
+    );
+    private static final Font MINI_BOLD = firstFont(
+            TRANSFORMER.getFont("Inter_Medium", 26f),
+            TRANSFORMER.getFont("Inter_Regular", 26f)
+    );
+    private static final Font TINY_BOLD = firstFont(
+            TRANSFORMER.getFont("Inter_Medium", 28f),
+            TRANSFORMER.getFont("Inter_Regular", 28f)
     );
     private static final Font TINY = firstFont(
-            TRANSFORMER.getFont("Inter_Regular", 30f)
+            TRANSFORMER.getFont("Inter_Regular", 28f)
+    );
+    private static final Font MICRO = firstFont(
+            TRANSFORMER.getFont("Inter_Regular", 24f)
     );
     private static final Font ICON = firstFont(
             TRANSFORMER.getFont("icon2", 42f)
+    );
+    private static final Font SKEET_ICON = firstFont(
+            TRANSFORMER.getFont("skeetui", 42f)
     );
 
     private Fonts() {
@@ -64,16 +93,44 @@ public final class Fonts {
         return MEDIUM;
     }
 
+    public static Font mediumBold() {
+        return MEDIUM_BOLD;
+    }
+
     public static Font small() {
         return SMALL;
+    }
+
+    public static Font smallBold() {
+        return SMALL_BOLD;
+    }
+
+    public static Font smallerBold() {
+        return SMALLER_BOLD;
+    }
+
+    public static Font miniBold() {
+        return MINI_BOLD;
     }
 
     public static Font tiny() {
         return TINY;
     }
 
+    public static Font tinyBold() {
+        return TINY_BOLD;
+    }
+
+    public static Font micro() {
+        return MICRO;
+    }
+
     public static Font icon() {
         return ICON;
+    }
+
+    public static Font skeetIcon() {
+        return SKEET_ICON;
     }
 
     public static Font msyhSmall() {
