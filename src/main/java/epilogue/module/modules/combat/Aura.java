@@ -1,6 +1,12 @@
 package epilogue.module.modules.combat;
 
 import com.google.common.base.CaseFormat;
+import epilogue.module.modules.combat.rotation.Rotation;
+import epilogue.module.modules.movement.NoSlow;
+import epilogue.module.modules.player.BedNuker;
+import epilogue.module.modules.player.Scaffold;
+import epiloguemixinbridge.IAccessorPlayerControllerMP;
+import lombok.Getter;
 import epilogue.Epilogue;
 import epilogue.enums.BlinkModules;
 import epilogue.event.EventTarget;
@@ -9,19 +15,15 @@ import epilogue.event.types.Priority;
 import epilogue.events.*;
 import epilogue.management.RotationState;
 import epilogue.module.Module;
-import epilogue.module.modules.combat.rotation.OPRotationSystem;
-import epilogue.module.modules.combat.rotation.Rotation;
-import epilogue.module.modules.combat.rotation.RotationUtils;
-import epilogue.module.modules.player.Scaffold;
-import epilogue.module.modules.player.BedNuker;
-import epilogue.value.values.BooleanValue;
-
-import epilogue.util.*;
 import epilogue.value.values.*;
-import epiloguemixinbridge.IAccessorPlayerControllerMP;
+import epilogue.util.*;
+import epiloguemixinbridge.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityOtherPlayerMP;
 import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.RenderGlobal;
+import net.minecraft.entity.DataWatcher.WatchableObject;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.boss.EntityDragon;
@@ -36,42 +38,36 @@ import net.minecraft.entity.passive.EntitySquid;
 import net.minecraft.entity.passive.EntityVillager;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.ItemSword;
 import net.minecraft.network.play.client.C02PacketUseEntity;
 import net.minecraft.network.play.client.C02PacketUseEntity.Action;
 import net.minecraft.network.play.client.C07PacketPlayerDigging;
 import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
 import net.minecraft.network.play.client.C09PacketHeldItemChange;
+import net.minecraft.network.play.server.S06PacketUpdateHealth;
+import net.minecraft.network.play.server.S1CPacketEntityMetadata;
 import net.minecraft.util.*;
 import net.minecraft.util.MovingObjectPosition.MovingObjectType;
 import net.minecraft.world.WorldSettings.GameType;
+import org.lwjgl.opengl.GL11;
 
+import java.awt.*;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Random;
 
 public class Aura extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
-    public static boolean rotationBlocked = false;
-    public static boolean attackBlocked = false;
-    public static boolean swingBlocked = false;
-    private static final float SIM_MAX_YAW_STEP = 45.0F;
-    private static final float SIM_MAX_PITCH_STEP = 45.0F;
-    private final TimerUtil timer = new TimerUtil();
-    private final OPRotationSystem simRotationSystem = new OPRotationSystem();
-    private int postTargetLostTicks = 0;
-    public AttackData target = null;
-    private int switchTick = 0;
-    private boolean hitRegistered = false;
-    boolean blockingState = false;
-    public static boolean isBlocking = false;
-    private boolean fakeBlockState = false;
-    private boolean blinkReset = false;
-    private long attackDelayMS = 0L;
-    private int blockTick = 0;
+    private static final DecimalFormat df = new DecimalFormat("+0.0;-0.0", new DecimalFormatSymbols(Locale.US));
+    private static final long ROTATION_UPDATE_INTERVAL_MS = 50;
+    public final ModeValue cpsMode;
     public final ModeValue mode;
     public final ModeValue sort;
     public final ModeValue autoBlock;
     public final BooleanValue autoBlockRequirePress;
-    public final IntValue autoBlockCPS;
+    public final FloatValue autoBlockCPS;
     public final FloatValue autoBlockRange;
     public final FloatValue swingRange;
     public final FloatValue attackRange;
@@ -80,9 +76,20 @@ public class Aura extends Module {
     public final IntValue maxCPS;
     public final IntValue switchDelay;
     public final ModeValue rotations;
-    public final ModeValue yaw;
-    public final ModeValue pitch;
+    public final FloatValue deadZoneSize;
+    public final FloatValue maxTurnSpeed;
+    public final FloatValue minTurnSpeed;
+    public final FloatValue acceleration;
+    public final FloatValue deceleration;
+    public final BooleanValue useOvershoot;
+    public final FloatValue overshootStrength;
+    public final FloatValue overshootRecovery;
+    public final FloatValue noiseStrength;
+    public final BooleanValue visualizeAim;
+    public final BooleanValue smoothBack;
     public final ModeValue moveFix;
+    public final PercentValue smoothing;
+    public final IntValue angleStep;
     public final BooleanValue throughWalls;
     public final BooleanValue requirePress;
     public final BooleanValue allowMining;
@@ -94,70 +101,165 @@ public class Aura extends Module {
     public final BooleanValue bosses;
     public final BooleanValue mobs;
     public final BooleanValue animals;
-    public final BooleanValue silverfish;
     public final BooleanValue golems;
+    public final BooleanValue silverfish;
     public final BooleanValue teams;
-    private boolean swapped;
+    public final ModeValue showTarget;
+    public final ModeValue debugLog;
+    public final BooleanValue randomize;
+    public final FloatValue randomizeRange;
+    public final FloatValue yRandomizeStrength;
+    public final FloatValue liquidBounceHorizontalSpeed;
+    public final FloatValue liquidBounceVerticalSpeed;
+    public final FloatValue liquidBounceSmoothFactor;
+    public final BooleanValue liquidBouncePredict;
+    public final FloatValue liquidBouncePredictSize;
+    public final BooleanValue liquidBounceRandomize;
+    public final FloatValue liquidBounceRandomizeRange;
+    public final FloatValue liquidBounceHorizontalSearch;
+    public final FloatValue liquidBounceBodyPointMin;
+    public final FloatValue liquidBounceBodyPointMax;
+    private final int[] clickPattern = {16, 22, 14, 46, 18, 8, 8, 63, 25, 25, 12, 39, 26, 18, 6, 62, 26, 18, 21, 40, 26, 8, 16, 46, 26, 20, 15, 50, 25, 10, 11, 43, 25, 11, 37, 39, 25, 12, 18, 54, 25, 25, 15, 41, 27, 9, 1, 66, 26, 17, 21, 48, 27, 8, 6, 62, 28, 19, 13, 47, 26, 7, 14, 53, 27, 16, 29, 38, 27, 8, 6, 60, 27, 22, 19, 45, 26, 10, 10, 62, 25, 20, 28, 22, 26, 19, 11, 57, 26, 16, 32, 36, 26, 9, 9, 66, 27, 19, 27, 38, 26, 9, 10, 61, 26, 25, 15, 34, 26, 20, 10, 52, 26, 22, 28, 29, 27, 8, 3, 63, 26, 21, 27, 38, 26, 10, 11, 38, 27, 15, 31, 39, 25, 13, 10, 45, 27, 14, 27, 40, 26, 10, 6, 51, 26, 18, 31, 27, 27, 11, 14, 47, 26, 23, 21, 35, 26, 12, 13, 41, 26, 15, 31, 36, 27, 16, 9, 44, 27, 14, 30, 39, 25, 14, 10, 46, 28, 10, 24, 45, 26, 7, 5, 46, 26, 20, 6, 50, 26, 8, 6, 51, 26, 17, 20, 40, 27, 25, 1, 32, 26, 20, 9, 46, 25, 15, 12, 30, 26, 11, 25, 46, 27, 13, 10, 36, 27, 20, 15, 41, 26, 8, 6, 41, 26, 12, 29, 44, 26, 13, 11, 44, 26, 12, 27, 36, 26, 23, 4, 39, 26, 24, 12, 47, 26, 9, 2, 65, 26, 16, 27, 34, 26, 25, 0, 53, 26, 16, 3, 47, 27, 16, 10, 41, 26, 18, 25, 38, 26, 11, 10, 50, 27, 20, 20, 29, 26, 11, 7, 66, 26, 20, 18, 31, 26, 21, 21, 28, 26, 21, 29, 25, 27, 15, 12, 43, 28, 11, 31, 32, 27, 23, 0, 49, 27, 20, 30, 30, 25, 32, 0, 50, 26, 12, 25, 34, 27, 11, 11, 44, 27, 23, 26, 25, 27, 16, 11, 46, 26, 13, 32, 35, 28, 9, 5, 48, 26, 21, 29, 37, 26, 10, 7, 48, 27, 20, 21, 41, 24, 7, 18, 46, 25, 22, 22, 33, 25, 10, 5, 59, 26, 21, 19, 29, 26, 11, 10, 46, 25, 22, 29, 31, 25, 11, 12, 50, 24, 20, 28, 40, 25, 10, 4, 56, 25, 16, 36, 30, 24, 10, 9, 63, 25, 22, 22, 32, 25, 9, 8, 58, 27, 10, 43, 30, 26, 8, 3, 60, 26, 24, 14, 42, 26, 12, 9, 49, 25, 11, 32, 38, 27, 8, 8, 50, 26, 20, 26, 32, 25, 10, 4, 66, 25, 18, 28, 24, 26, 10, 8, 54, 25, 16, 32, 34, 24, 9, 12, 54, 25, 18, 18, 41, 28, 9, 16, 50, 28, 15, 21, 46, 27, 9, 8, 49, 26, 21, 18, 36, 26, 15, 10, 54, 27, 22, 27, 32, 25, 9, 15, 48, 28, 19, 26, 35, 27, 9, 13, 48, 25, 21, 23, 33, 27, 8, 3, 65, 26, 19, 23, 39, 25, 9, 13, 44, 26, 25, 19, 35, 26, 14, 6, 63, 27, 15, 23, 32, 28, 8, 2, 65, 26, 19, 24, 34, 27, 12, 0, 49, 26, 21, 34, 34, 26, 8, 9, 60, 26, 23, 19, 34, 26, 10, 5, 59, 26, 12, 36, 39, 26, 11, 11, 44, 26, 25, 5, 47, 25, 9, 10, 49, 27, 19, 24, 31, 26, 10, 4, 60, 27, 25, 9, 41, 26, 20, 7, 54, 24, 11, 35, 35, 26, 9, 5, 67, 26, 17, 19, 43, 26, 24, 17, 39, 25, 16, 11, 45, 25, 9, 3, 60, 25, 25, 16, 37, 28, 9, 5, 55, 26, 15, 12, 49, 25, 17, 8, 39, 25, 15, 16, 48, 25, 12, 9, 37, 25, 17, 31, 38, 27, 8, 8, 62, 26, 23, 14, 38, 27, 16, 10, 45, 26, 13, 25, 42, 25, 9, 8, 57, 27, 12, 36, 38, 27, 13, 11, 30, 27, 21, 24, 47, 25, 10, 6, 54, 26, 13, 28, 42, 25, 10, 5, 47, 26, 21, 22, 44, 26, 10, 8, 50, 28, 17, 26, 33, 26, 10, 14, 55, 27, 14, 30, 29, 25, 13, 1, 70, 26, 14, 30, 26, 27, 12, 14, 67, 25, 21, 4, 33, 25, 11, 5, 48, 26, 21, 21, 39, 25, 11, 1, 55, 26, 11, 29, 32, 26, 12, 10, 50, 27, 16, 26, 36, 27, 23, 3, 57, 27, 11, 23, 37, 26, 9, 16, 37, 26, 16, 38, 37, 26, 9, 2, 60, 27, 22, 16, 38, 27, 9, 5, 53, 26, 14, 33, 30, 25, 13, 11, 46, 25, 23, 22, 43, 24, 10, 13, 51, 25, 21, 25, 35, 27, 8, 16, 48, 25, 21, 19, 42, 25, 12, 12, 49, 26, 21, 18, 42, 25, 12, 13, 51, 27, 16, 25, 37, 26, 11, 12, 47, 27, 21, 13, 39, 27, 5, 9, 61, 25, 24, 11, 39, 26, 10, 9, 52, 26, 15, 33, 28, 38, 0, 9, 55, 26, 14, 39, 24, 25, 10, 9, 52, 27, 13, 29, 36, 25, 12, 9, 49, 25, 22, 30, 26, 26, 10, 2, 66, 27, 17, 30, 31, 26, 14, 7, 64, 28, 16, 31, 28, 24, 13, 14, 54, 25, 12, 29, 35, 27, 10, 8, 49, 27, 18, 26, 38, 25, 8, 14, 46, 26, 23, 15, 36, 26, 11, 5, 61, 27, 23, 8, 42, 25, 9, 10, 57, 26, 11, 29, 37, 25, 11, 9, 56, 27, 11, 32, 35, 26, 12, 6, 62, 27, 20, 33, 27, 27, 10, 14, 50, 27, 17, 28, 40, 25, 9, 8, 46, 26, 23, 16, 44, 26, 11, 13, 47, 28, 19, 19, 36, 26, 8, 7, 55, 26, 15, 24, 39, 26, 12, 9, 56, 26, 15, 28, 36, 25, 10, 10, 51, 25, 17, 32, 36, 25, 9, 7, 58, 26, 11, 31, 32, 26, 7, 14, 57, 26, 13, 22, 25, 24, 9, 14, 42, 26, 12, 27, 31, 25, 9, 2, 62, 27, 23, 12, 33, 26, 8, 18, 46, 25, 24, 14, 33, 24, 10, 14, 50, 25, 20, 21, 38, 26, 9, 1, 61, 25, 11, 30, 35, 26, 10, 10, 53, 25, 18, 22, 35, 25, 8, 4, 44, 25, 25, 21, 37, 24, 13, 6, 35, 27, 11, 34, 32, 25, 9, 10, 51, 26, 17, 18, 31, 24, 11, 8, 53, 26, 16, 30, 35, 26, 8, 10, 60, 25, 11, 32, 29, 25, 22, 2, 53, 26, 16, 30, 33, 27, 9, 11, 57, 25, 13, 32, 30, 25, 14, 10, 67, 24, 21, 29, 35, 27, 8, 12, 70, 26, 14, 19, 42, 27, 22, 0, 57, 27, 12, 31, 33, 25, 9, 12, 62, 27, 23, 14, 43, 25, 11, 2, 71, 28, 12, 33, 31, 27, 8, 12, 71, 26, 15, 23, 42, 28, 9, 8, 63, 26, 22, 22, 37, 27, 7, 4, 78, 27, 20, 26, 34, 25, 9, 15, 64, 27, 21, 23, 32, 26, 12, 11, 77, 25, 11, 32, 29, 26, 9, 15, 63, 27, 19, 23, 38, 26, 10, 15, 57, 26, 14, 37, 14, 26, 18, 6, 67, 26, 13, 31, 33, 26, 19, 1, 60, 27, 25, 22, 24, 27, 22, 2, 55, 26, 13, 25, 34, 26, 24, 0, 68, 25, 20, 22, 31, 25, 11, 4, 80, 24, 22, 22, 29, 26, 16, 8, 81, 25, 11, 22, 38, 27, 10, 11, 50, 27, 18, 35, 32, 26, 10, 5, 76, 26, 23, 22, 30, 24, 21, 8, 67, 27, 24, 16, 42, 27, 8, 3};
+    private final TimerUtil timer = new TimerUtil();
+    private final Random random = new Random();
+    public AttackData target = null;
+    private Rotation serverRotation = new Rotation(0, 0);
+    private boolean isSmoothBacking = false;
+    private boolean wantsToDisable = false;
+    private Vec3 currentAimVec = null;
+    private int patternIndex = 0;
+    private int switchTick = 0;
+    private boolean hitRegistered = false;
+    private boolean blockingState = false;
+    private boolean isBlocking = false;
+    private boolean fakeBlockState = false;
+    private boolean blinkReset = false;
+    private long attackDelayMS = 0L;
+    private int blockTick = 0;
+    private int lastTickProcessed;
+    private long lastRotationUpdateTime = 0;
 
-    private long getAttackDelay() {
-        return this.isBlocking ? (long) (1000.0F / this.autoBlockCPS.getValue()) : 1000L / RandomUtil.nextLong(this.minCPS.getValue(), this.maxCPS.getValue());
+    public Aura() {
+        super("Aura", false);
+        this.lastTickProcessed = 0;
+
+        // 新增CPS模式属性
+        this.cpsMode = new ModeValue("CPS Mode", 0, new String[]{"Normal", "Record"});
+
+        this.mode = new ModeValue("Mode", 1, new String[]{"Single", "Switch"});
+        this.sort = new ModeValue("Sort", 1, new String[]{"Distance", "Health", "HurtTime", "FOV"});
+        this.autoBlock = new ModeValue("auto-block", 3, new String[]{"NONE", "VANILLA", "SPOOF", "HYPIXEL", "BLINK", "INTERACT", "SWAP", "LEGIT", "FAKE"});
+        this.autoBlockCPS = new FloatValue("AutoBlockCPS", 8.0F, 1.0F, 10.0F);
+        this.autoBlockRequirePress = new BooleanValue("AutoBlockRequirePress", false);
+        this.autoBlockRange = new FloatValue("AutoBlockRange", 6.0F, 3.0F, 8.0F);
+        this.swingRange = new FloatValue("SwingRange", 3.5F, 3.0F, 6.0F);
+        this.attackRange = new FloatValue("AttackRange", 3.0F, 3.0F, 6.0F);
+        this.fov = new IntValue("FOV", 360, 30, 360);
+        this.minCPS = new IntValue("MinCPS", 14, 1, 20);
+        this.maxCPS = new IntValue("MaxCPS", 14, 1, 20);
+        this.switchDelay = new IntValue("SwitchDelay", 150, 0, 1000);
+        this.rotations = new ModeValue("Rotations", 2, new String[]{"NONE", "Legit", "Silent", "LockView", "LiquidBounce"});
+        this.deadZoneSize = new FloatValue("DeadZone", 0.5F, 0.0F, 2.0F, () -> rotations.getValue() == 4);
+        this.maxTurnSpeed = new FloatValue("MaxSpeed", 25.0F, 5.0F, 180.0F, () -> rotations.getValue() == 4);
+        this.minTurnSpeed = new FloatValue("MinSpeed", 5.0F, 1.0F, 90.0F, () -> rotations.getValue() == 4);
+        this.acceleration = new FloatValue("Acceleration", 2.5F, 0.1F, 10.0F, () -> rotations.getValue() == 4);
+        this.deceleration = new FloatValue("Deceleration", 1.5F, 0.1F, 10.0F, () -> rotations.getValue() == 4);
+        this.useOvershoot = new BooleanValue("Overshoot", true, () -> rotations.getValue() == 4);
+        this.overshootStrength = new FloatValue("OverStr", 5.0F, 0.0F, 20.0F, () -> rotations.getValue() == 4 && useOvershoot.getValue());
+        this.overshootRecovery = new FloatValue("OverRecov", 0.2F, 0.01F, 1.0F, () -> rotations.getValue() == 4 && useOvershoot.getValue());
+        this.noiseStrength = new FloatValue("Noise", 0.2F, 0.0F, 2.0F, () -> rotations.getValue() == 4);
+        this.randomize = new BooleanValue("Randomize", true, () -> rotations.getValue() == 4);
+        this.randomizeRange = new FloatValue("RandomRange", 0.4F, 0.0F, 1.0F, () -> rotations.getValue() == 4 && randomize.getValue());
+        this.yRandomizeStrength = new FloatValue("YRandomize", 0.3F, 0.0F, 1.0F, () -> rotations.getValue() == 4 && randomize.getValue());
+        this.visualizeAim = new BooleanValue("VisualizeAim", true, () -> rotations.getValue() == 4);
+        this.smoothBack = new BooleanValue("SmoothBack", true, () -> rotations.getValue() == 4);
+        this.moveFix = new ModeValue("MoveFix", 1, new String[]{"NONE", "Silent", "Strict"});
+        this.smoothing = new PercentValue("Smoothing", 0);
+        this.angleStep = new IntValue("AngleStep", 90, 30, 180);
+        this.throughWalls = new BooleanValue("ThroughWalls", true);
+        this.requirePress = new BooleanValue("RequirePress", false);
+        this.allowMining = new BooleanValue("AllowMining", true);
+        this.weaponsOnly = new BooleanValue("WeaponsOnly", true);
+        this.allowTools = new BooleanValue("AllowTools", false, this.weaponsOnly::getValue);
+        this.inventoryCheck = new BooleanValue("InventoryCheck", true);
+        this.botCheck = new BooleanValue("BotCheck", true);
+        this.players = new BooleanValue("Players", true);
+        this.bosses = new BooleanValue("Bosses", false);
+        this.mobs = new BooleanValue("Mobs", false);
+        this.animals = new BooleanValue("Animals", false);
+        this.golems = new BooleanValue("Golems", false);
+        this.silverfish = new BooleanValue("Silverfish", false);
+        this.teams = new BooleanValue("Teams", true);
+        this.showTarget = new ModeValue("ShowTarget", 0, new String[]{"NONE", "Default"});
+        this.debugLog = new ModeValue("Debug", 0, new String[]{"NONE", "Health"});
+
+        this.liquidBounceHorizontalSpeed = new FloatValue("LB-HSpeed", 180.0F, 1.0F, 180.0F, () -> rotations.getValue() == 4);
+        this.liquidBounceVerticalSpeed = new FloatValue("LB-VSpeed", 180.0F, 1.0F, 180.0F, () -> rotations.getValue() == 4);
+        this.liquidBounceSmoothFactor = new FloatValue("LB-Smooth", 0.5F, 0.1F, 1.0F, () -> rotations.getValue() == 4);
+        this.liquidBouncePredict = new BooleanValue("LB-Predict", true, () -> rotations.getValue() == 4);
+        this.liquidBouncePredictSize = new FloatValue("LB-PredictSize", 1.0F, 0.0F, 3.0F, () -> rotations.getValue() == 4 && liquidBouncePredict.getValue());
+        this.liquidBounceRandomize = new BooleanValue("LB-Randomize", true, () -> rotations.getValue() == 4);
+        this.liquidBounceRandomizeRange = new FloatValue("LB-RandomRange", 0.5F, 0.0F, 1.0F, () -> rotations.getValue() == 4 && liquidBounceRandomize.getValue());
+        this.liquidBounceHorizontalSearch = new FloatValue("LB-HSearch", 0.5F, 0.0F, 1.0F, () -> rotations.getValue() == 4);
+        this.liquidBounceBodyPointMin = new FloatValue("LB-BodyMin", 0.1F, 0.0F, 1.0F, () -> rotations.getValue() == 4);
+        this.liquidBounceBodyPointMax = new FloatValue("LB-BodyMax", 0.9F, 0.0F, 1.0F, () -> rotations.getValue() == 4);
     }
 
-    private Rotation clampStep(Rotation base, Rotation desired) {
-        if (base == null || desired == null) {
-            return desired;
+    private long getAttackDelay() {
+        if (this.isBlocking) {
+            return (long) (1000.0F / this.autoBlockCPS.getValue());
+        } else {
+            if (this.cpsMode.getValue() == 1) { // Record模式
+                // 使用记录的模式
+                if (patternIndex >= clickPattern.length) {
+                    patternIndex = 0; // 循环播放
+                }
+                return clickPattern[patternIndex];
+            } else { // Normal模式
+                return 1000L / RandomUtil.nextLong(this.minCPS.getValue(), this.maxCPS.getValue());
+            }
         }
-        float yawDiff = RotationUtils.getAngleDiff(base.yaw, desired.yaw);
-        float pitchDiff = RotationUtils.getAngleDiff(base.pitch, desired.pitch);
-
-        float yawChange = RotationUtils.clamp(RotationUtils.abs(yawDiff), 0f, Aura.SIM_MAX_YAW_STEP);
-        float pitchChange = RotationUtils.clamp(RotationUtils.abs(pitchDiff), 0f, Aura.SIM_MAX_PITCH_STEP);
-
-        float nextYaw = base.yaw;
-        float nextPitch = base.pitch;
-
-        if (yawDiff > 0) {
-            nextYaw += yawChange;
-        } else if (yawDiff < 0) {
-            nextYaw -= yawChange;
-        }
-
-        if (pitchDiff > 0) {
-            nextPitch += pitchChange;
-        } else if (pitchDiff < 0) {
-            nextPitch -= pitchChange;
-        }
-
-        nextPitch = RotationUtils.clamp(nextPitch, -90f, 90f);
-        return new Rotation(nextYaw, nextPitch);
     }
 
     private boolean performAttack(float yaw, float pitch) {
-        if (attackBlocked) {
-            return false;
-        }
         if (!Epilogue.playerStateManager.digging && !Epilogue.playerStateManager.placing) {
             if (this.isPlayerBlocking() && this.autoBlock.getValue() != 1) {
                 return false;
             } else if (this.attackDelayMS > 0L) {
                 return false;
             } else {
-                this.attackDelayMS = this.attackDelayMS + this.getAttackDelay();
-                if (!swingBlocked) {
-                    mc.thePlayer.swingItem();
-                }
-                if ((this.rotations.getValue() != 0 || this.isBoxInAttackRange(this.target.getBox()))
-                        && RotationUtil.rayTrace(this.target.getBox(), yaw, pitch, this.attackRange.getValue()) == null) {
-                    return false;
-                } else {
-                    ((IAccessorPlayerControllerMP) mc.playerController).callSyncCurrentPlayItem();
-                    PacketUtil.sendPacket(new C02PacketUseEntity(this.target.getEntity(), Action.ATTACK));
-                    if (mc.playerController.getCurrentGameType() != GameType.SPECTATOR) {
-                        PlayerUtil.attackEntity(this.target.getEntity());
+                if (this.rotations.getValue() == 4) {
+                    MovingObjectPosition intercept = RotationUtil.rayTrace(
+                            this.target.getBox(),
+                            yaw,
+                            pitch,
+                            this.attackRange.getValue()
+                    );
+                    if (intercept == null) {
+                        return false;
                     }
-                    this.hitRegistered = true;
-                    return true;
                 }
+
+                this.attackDelayMS = this.getAttackDelay();
+                mc.thePlayer.swingItem();
+
+                if (this.cpsMode.getValue() == 1) { // Record模式，更新索引
+                    patternIndex = (patternIndex + 1) % clickPattern.length;
+                }
+
+                if (this.rotations.getValue() != 4 && this.rotations.getValue() != 0) {
+                    if (this.isBoxInAttackRange(this.target.getBox())
+                            && RotationUtil.rayTrace(this.target.getBox(), yaw, pitch, this.attackRange.getValue()) == null) {
+                        return false;
+                    }
+                }
+                ((IAccessorPlayerControllerMP) mc.playerController).callSyncCurrentPlayItem();
+                PacketUtil.sendPacket(new C02PacketUseEntity(this.target.getEntity(), Action.ATTACK));
+                if (mc.playerController.getCurrentGameType() != GameType.SPECTATOR) {
+                    PlayerUtil.attackEntity(this.target.getEntity());
+                }
+                this.hitRegistered = true;
+                return true;
             }
         } else {
             return false;
@@ -176,7 +278,6 @@ public class Aura extends Module {
     }
 
     private void stopBlock() {
-        ((IAccessorPlayerControllerMP) mc.playerController).callSyncCurrentPlayItem();
         PacketUtil.sendPacket(new C07PacketPlayerDigging(C07PacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
         mc.thePlayer.stopUsingItem();
         this.blockingState = false;
@@ -186,7 +287,7 @@ public class Aura extends Module {
         if (this.target != null) {
             MovingObjectPosition mop = RotationUtil.rayTrace(this.target.getBox(), yaw, pitch, 8.0);
             if (mop != null) {
-                ((IAccessorPlayerControllerMP) mc.playerController).callSyncCurrentPlayItem();;
+                ((IAccessorPlayerControllerMP) mc.playerController).callSyncCurrentPlayItem();
                 PacketUtil.sendPacket(
                         new C02PacketUseEntity(
                                 this.target.getEntity(),
@@ -202,17 +303,14 @@ public class Aura extends Module {
     }
 
     private boolean canAttack() {
-        if (attackBlocked) {
-            return false;
-        }
         if (this.inventoryCheck.getValue() && mc.currentScreen instanceof GuiContainer) {
             return false;
-        } else if (!(java.lang.Boolean) this.weaponsOnly.getValue()
+        } else if (!(Boolean) this.weaponsOnly.getValue()
                 || ItemUtil.hasRawUnbreakingEnchant()
                 || this.allowTools.getValue() && ItemUtil.isHoldingTool()) {
-            if (mc.playerController.getIsHittingBlock()) {
+            if (((IAccessorPlayerControllerMP) mc.playerController).getIsHittingBlock()) {
                 return false;
-            } else if (ItemUtil.isEating() || ItemUtil.isUsingBow()) {
+            } else if ((ItemUtil.isEating() || ItemUtil.isUsingBow()) && PlayerUtil.isUsingItem()) {
                 return false;
             } else {
                 AutoHeal autoHeal = (AutoHeal) Epilogue.moduleManager.modules.get(AutoHeal.class);
@@ -251,7 +349,7 @@ public class Aura extends Module {
                 .anyMatch(
                         entity -> entity instanceof EntityLivingBase
                                 && this.isValidTarget((EntityLivingBase) entity)
-                                && this.isInRange((EntityLivingBase) entity)
+                                && this.isInBlockRange((EntityLivingBase) entity)
                 );
     }
 
@@ -326,40 +424,33 @@ public class Aura extends Module {
         return entityLivingBase instanceof EntityPlayer && TeamUtil.isTarget((EntityPlayer) entityLivingBase);
     }
 
-    public Aura() {
-        super("Aura", false);
-        this.mode = new ModeValue("Select Mode", 1, new String[]{"Single", "Switch"});
-        this.switchDelay = new IntValue("Switch Delay", 150, 0, 1000);
-        this.sort = new ModeValue("Sort Mode", 1, new String[]{"Distance", "Health", "HurtTime", "FOV"});
-        this.moveFix = new ModeValue("MoveFix Mode", 1, new String[]{"NONE", "Silent", "Strict"});
-        this.rotations = new ModeValue("Rotation Mode", 2, new String[]{"NONE", "Manual", "Silent", "LockView", "Simulation"});
-        this.yaw = new ModeValue("Yaw Mode", 2, new String[]{"Linear", "SmoothLinear", "EIO", "PhysicalSimulation", "SkewedUnimodal", "SimpleNeuralNetwork"}, () -> this.rotations.getValue() == 4);
-        this.pitch = new ModeValue("Pitch Mode", 2, new String[]{"Linear", "SmoothLinear", "EIO", "PhysicalSimulation", "SkewedUnimodal", "SimpleNeuralNetwork"}, () -> this.rotations.getValue() == 4);
-        this.fov = new IntValue("FOV", 360, 30, 360);
-        this.autoBlock = new ModeValue(
-                "AutoBlock Mode", 3, new String[]{"NONE", "Vanilla", "Fake", "Prediction"}
-        );
-        this.autoBlockRequirePress = new BooleanValue("AutoBlock Only Right Click", false, () -> this.autoBlock.getValue() != 0 && this.autoBlock.getValue() != 2);
-        this.autoBlockCPS = new IntValue("AutoBlock CPS", 10, 1, 10);
-        this.autoBlockRange = new FloatValue("AutoBlock Range", 6.0F, 3.0F, 8.0F);
-        this.swingRange = new FloatValue("Swing Range", 3.5F, 3.0F, 6.0F);
-        this.attackRange = new FloatValue("Attack Range", 3.0F, 3.0F, 6.0F);
-        this.minCPS = new IntValue("Min CPS", 10, 1, 20);
-        this.maxCPS = new IntValue("Max CPS", 10, 1, 20);
-        this.requirePress = new BooleanValue("Attack Only Left Click", false);
-        this.throughWalls = new BooleanValue("Through Walls", true);
-        this.weaponsOnly = new BooleanValue("Only Weapons", true);
-        this.allowTools = new BooleanValue("Allow Tools", false, this.weaponsOnly::getValue);
-        this.allowMining = new BooleanValue("Break Block", true);
-        this.inventoryCheck = new BooleanValue("No Inventory", true);
-        this.teams = new BooleanValue("Teams", true);
-        this.botCheck = new BooleanValue("Anti Bot", true);
-        this.players = new BooleanValue("Player", true);
-        this.mobs = new BooleanValue("Monster", false);
-        this.animals = new BooleanValue("Animals", false);
-        this.bosses = new BooleanValue("Bosses", false);
-        this.silverfish = new BooleanValue("ClothesMoth", false);
-        this.golems = new BooleanValue("Golems", false);
+    private int findEmptySlot(int currentSlot) {
+        for (int i = 0; i < 9; i++) {
+            if (i != currentSlot && mc.thePlayer.inventory.getStackInSlot(i) == null) {
+                return i;
+            }
+        }
+        for (int i = 0; i < 9; i++) {
+            if (i != currentSlot) {
+                ItemStack stack = mc.thePlayer.inventory.getStackInSlot(i);
+                if (stack != null && !stack.hasDisplayName()) {
+                    return i;
+                }
+            }
+        }
+        return Math.floorMod(currentSlot - 1, 9);
+    }
+
+    private int findSwordSlot(int currentSlot) {
+        for (int i = 0; i < 9; i++) {
+            if (i != currentSlot) {
+                ItemStack item = mc.thePlayer.inventory.getStackInSlot(i);
+                if (item != null && item.getItem() instanceof ItemSword) {
+                    return i;
+                }
+            }
+        }
+        return -1;
     }
 
     public EntityLivingBase getTarget() {
@@ -381,7 +472,11 @@ public class Aura extends Module {
 
     public boolean shouldAutoBlock() {
         if (this.isPlayerBlocking() && this.isBlocking) {
-            return !mc.thePlayer.isInWater() && !mc.thePlayer.isInLava() && (this.autoBlock.getValue() == 1 || this.autoBlock.getValue() == 3);
+            return !mc.thePlayer.isInWater() && !mc.thePlayer.isInLava() && (this.autoBlock.getValue() == 3
+                    || this.autoBlock.getValue() == 4
+                    || this.autoBlock.getValue() == 5
+                    || this.autoBlock.getValue() == 6
+                    || this.autoBlock.getValue() == 7);
         } else {
             return false;
         }
@@ -397,240 +492,618 @@ public class Aura extends Module {
 
     @EventTarget(Priority.LOW)
     public void onUpdate(UpdateEvent event) {
-
         if (event.getType() == EventType.POST && this.blinkReset) {
             this.blinkReset = false;
             Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
             Epilogue.blinkManager.setBlinkState(true, BlinkModules.AUTO_BLOCK);
         }
-
-        if (this.isEnabled() && event.getType() == EventType.PRE) {
-
-            if (this.attackDelayMS > 0L) {
-                this.attackDelayMS -= 50L;
-            }
-            boolean attack = this.target != null && this.canAttack();
-            boolean block = attack && this.canAutoBlock();
-
-            if (!block) {
-                Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
-                this.isBlocking = false;
-                this.fakeBlockState = false;
-                this.blockTick = 0;
-            }
-            if (attack) {
-                boolean swap = false;
-                boolean blocked = false;
-                if (block) {
-                    switch (this.autoBlock.getValue()) {
-
-                        case 0: {
-                            if (PlayerUtil.isUsingItem()) {
-                                this.isBlocking = true;
-                                if (!this.isPlayerBlocking() && !Epilogue.playerStateManager.digging && !Epilogue.playerStateManager.placing) {
-                                    swap = true;
-                                }
-                            } else {
-                                this.isBlocking = false;
-                                if (this.isPlayerBlocking() && !Epilogue.playerStateManager.digging && !Epilogue.playerStateManager.placing) {
-                                    this.stopBlock();
-                                }
+        if (this.isEnabled() || this.wantsToDisable) {
+            if (event.getType() == EventType.PRE) {
+                if (this.wantsToDisable) {
+                    if (this.smoothBack.getValue()) {
+                        Rotation currentRot = this.serverRotation;
+                        Rotation playerRot = new Rotation(mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch);
+                        if (Math.abs(MathHelper.wrapAngleTo180_float(currentRot.yaw - playerRot.yaw)) > 1.0F || Math.abs(MathHelper.wrapAngleTo180_float(currentRot.pitch - playerRot.pitch)) > 1.0F) {
+                            Rotation nextRot = getSmoothBackRotation(currentRot, playerRot);
+                            this.serverRotation = nextRot;
+                            event.setRotation(nextRot.yaw, nextRot.pitch, 1);
+                            if (this.moveFix.getValue() != 0) {
+                                event.setPervRotation(nextRot.yaw, 1);
                             }
-                            Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
-                            this.fakeBlockState = false;
-                            break;
+                            mc.thePlayer.rotationYawHead = nextRot.yaw;
+                            mc.thePlayer.renderYawOffset = nextRot.yaw;
+                            return;
+                        } else {
+                            this.wantsToDisable = false;
+                            this.setEnabled(false);
+                            return;
                         }
-                        case 1: {
-                            if (this.hasValidTarget()) {
-                                if (!this.isPlayerBlocking() && !Epilogue.playerStateManager.digging && !Epilogue.playerStateManager.placing) {
-                                    swap = true;
-                                }
-                                Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
-                                this.isBlocking = true;
-                            } else {
-                                Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
-                                this.isBlocking = false;
-                            }
-                            this.fakeBlockState = false;
-                            break;
-                        }
-                        case 2: {
-                            Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
-                            this.isBlocking = false;
-                            this.fakeBlockState = this.hasValidTarget();
-                            if (PlayerUtil.isUsingItem()
-                                    && !this.isPlayerBlocking()
-                                    && !Epilogue.playerStateManager.digging
-                                    && !Epilogue.playerStateManager.placing) {
-                                swap = true;
-                            }
-                            break;
-                        }
-                        case 3: {
-                            if (this.hasValidTarget()) {
-                                if (!Epilogue.playerStateManager.digging && !Epilogue.playerStateManager.placing) {
-                                    switch (this.blockTick) {
-                                        case 0:
-                                            this.setCurrentSlot();
-                                            if (!this.isPlayerBlocking()) {
-                                                swap = true;
-                                            }
-                                            blocked = true;
-                                            this.blockTick = 1;
-                                            break;
-                                        case 1:
-                                            this.stopBlock();
-                                            attack = false;
-                                            this.setNextSlot();
-                                            if (this.attackDelayMS <= 50L) {
-                                                this.blockTick = 0;
-                                            }
-                                            break;
-                                        default:
-                                            this.blockTick = 0;
-                                            this.setCurrentSlot();
+                    } else {
+                        this.wantsToDisable = false;
+                        this.setEnabled(false);
+                        return;
+                    }
+                }
+                if (this.attackDelayMS > 0L) {
+                    this.attackDelayMS -= 50L;
+                }
+                boolean attack = this.target != null && this.canAttack();
+                boolean block = attack && this.canAutoBlock();
+                if (!block) {
+                    Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
+                    this.isBlocking = false;
+                    this.fakeBlockState = false;
+                    this.blockTick = 0;
+                }
+                if (attack) {
+                    boolean swap = false;
+                    boolean blocked = false;
+                    if (block) {
+                        switch (this.autoBlock.getValue()) {
+                            case 0:
+                                if (PlayerUtil.isUsingItem()) {
+                                    this.isBlocking = true;
+                                    if (!this.isPlayerBlocking() && !Epilogue.playerStateManager.digging && !Epilogue.playerStateManager.placing) {
+                                        swap = true;
+                                    }
+                                } else {
+                                    this.isBlocking = false;
+                                    if (this.isPlayerBlocking() && !Epilogue.playerStateManager.digging && !Epilogue.playerStateManager.placing) {
+                                        this.stopBlock();
                                     }
                                 }
-                                this.isBlocking = true;
-                                this.fakeBlockState = true;
-                            } else {
-                                if (this.blockTick == 1 && this.isPlayerBlocking()) {
-                                    this.stopBlock();
-                                    this.setNextSlot();
+                                Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
+                                this.fakeBlockState = false;
+                                break;
+                            case 1:
+                                if (this.hasValidTarget()) {
+                                    if (!this.isPlayerBlocking() && !Epilogue.playerStateManager.digging && !Epilogue.playerStateManager.placing) {
+                                        swap = true;
+                                    }
+                                    Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
+                                    this.isBlocking = true;
+                                    this.fakeBlockState = false;
+                                } else {
+                                    Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
+                                    this.isBlocking = false;
+                                    this.fakeBlockState = false;
                                 }
-                                this.blockTick = 0;
-                                this.setCurrentSlot();
+                                break;
+                            case 2:
+                                if (this.hasValidTarget()) {
+                                    int item = ((IAccessorPlayerControllerMP) mc.playerController).getCurrentPlayerItem();
+                                    if (Epilogue.playerStateManager.digging || Epilogue.playerStateManager.placing || mc.thePlayer.inventory.currentItem != item || this.isPlayerBlocking() && this.blockTick != 0 || this.attackDelayMS > 0L && this.attackDelayMS <= 50L) {
+                                        this.blockTick = 0;
+                                    } else {
+                                        int slot = this.findEmptySlot(item);
+                                        PacketUtil.sendPacket(new C09PacketHeldItemChange(slot));
+                                        PacketUtil.sendPacket(new C09PacketHeldItemChange(item));
+                                        swap = true;
+                                        this.blockTick = 1;
+                                    }
+                                    Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
+                                    this.isBlocking = true;
+                                    this.fakeBlockState = false;
+                                } else {
+                                    Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
+                                    this.isBlocking = false;
+                                    this.fakeBlockState = false;
+                                }
+                                break;
+                            case 3:
+                                if (this.hasValidTarget()) {
+                                    if (!Epilogue.playerStateManager.digging && !Epilogue.playerStateManager.placing) {
+                                        switch (this.blockTick) {
+                                            case 0:
+                                                if (!this.isPlayerBlocking()) {
+                                                    swap = true;
+                                                }
+                                                blocked = true;
+                                                this.blockTick = 1;
+                                                break;
+                                            case 1:
+                                                if (this.isPlayerBlocking()) {
+                                                    if (Epilogue.moduleManager.modules.get(NoSlow.class).isEnabled()) {
+                                                        int randomSlot = new Random().nextInt(9);
+                                                        while (randomSlot == mc.thePlayer.inventory.currentItem) {
+                                                            randomSlot = new Random().nextInt(9);
+                                                        }
+                                                        PacketUtil.sendPacket(new C09PacketHeldItemChange(randomSlot));
+                                                        PacketUtil.sendPacket(new C09PacketHeldItemChange(mc.thePlayer.inventory.currentItem));
+                                                    }
+                                                    this.stopBlock();
+                                                    attack = false;
+                                                }
+                                                if (this.attackDelayMS <= 50L) {
+                                                    this.blockTick = 0;
+                                                }
+                                                break;
+                                            default:
+                                                this.blockTick = 0;
+                                        }
+                                    }
+                                    this.isBlocking = true;
+                                    this.fakeBlockState = true;
+                                } else {
+                                    Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
+                                    this.isBlocking = false;
+                                    this.fakeBlockState = false;
+                                }
+                                break;
+                            case 4:
+                                if (this.hasValidTarget()) {
+                                    if (!Epilogue.playerStateManager.digging && !Epilogue.playerStateManager.placing) {
+                                        switch (this.blockTick) {
+                                            case 0:
+                                                if (!this.isPlayerBlocking()) {
+                                                    swap = true;
+                                                }
+                                                this.blinkReset = true;
+                                                this.blockTick = 1;
+                                                break;
+                                            case 1:
+                                                if (this.isPlayerBlocking()) {
+                                                    this.stopBlock();
+                                                    attack = false;
+                                                }
+                                                if (this.attackDelayMS <= 50L) {
+                                                    this.blockTick = 0;
+                                                }
+                                                break;
+                                            default:
+                                                this.blockTick = 0;
+                                        }
+                                    }
+                                    this.isBlocking = true;
+                                    this.fakeBlockState = true;
+                                } else {
+                                    Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
+                                    this.isBlocking = false;
+                                    this.fakeBlockState = false;
+                                }
+                                break;
+                            case 5:
+                                if (this.hasValidTarget()) {
+                                    int item = ((IAccessorPlayerControllerMP) mc.playerController).getCurrentPlayerItem();
+                                    if (mc.thePlayer.inventory.currentItem == item && !Epilogue.playerStateManager.digging && !Epilogue.playerStateManager.placing) {
+                                        switch (this.blockTick) {
+                                            case 0:
+                                                if (!this.isPlayerBlocking()) {
+                                                    swap = true;
+                                                }
+                                                this.blinkReset = true;
+                                                this.blockTick = 1;
+                                                break;
+                                            case 1:
+                                                if (this.isPlayerBlocking()) {
+                                                    int slot = this.findEmptySlot(item);
+                                                    PacketUtil.sendPacket(new C09PacketHeldItemChange(slot));
+                                                    ((IAccessorPlayerControllerMP) mc.playerController).setCurrentPlayerItem(slot);
+                                                    attack = false;
+                                                }
+                                                if (this.attackDelayMS <= 50L) {
+                                                    this.blockTick = 0;
+                                                }
+                                                break;
+                                            default:
+                                                this.blockTick = 0;
+                                        }
+                                    }
+                                    this.isBlocking = true;
+                                    this.fakeBlockState = true;
+                                } else {
+                                    Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
+                                    this.isBlocking = false;
+                                    this.fakeBlockState = false;
+                                }
+                                break;
+                            case 6:
+                                if (this.hasValidTarget()) {
+                                    int item = ((IAccessorPlayerControllerMP) mc.playerController).getCurrentPlayerItem();
+                                    if (mc.thePlayer.inventory.currentItem == item && !Epilogue.playerStateManager.digging && !Epilogue.playerStateManager.placing) {
+                                        switch (this.blockTick) {
+                                            case 0:
+                                                int slot = this.findSwordSlot(item);
+                                                if (slot != -1) {
+                                                    if (!this.isPlayerBlocking()) {
+                                                        swap = true;
+                                                    }
+                                                    this.blockTick = 1;
+                                                }
+                                                break;
+                                            case 1:
+                                                int swordsSlot = this.findSwordSlot(item);
+                                                if (swordsSlot == -1) {
+                                                    this.blockTick = 0;
+                                                } else if (!this.isPlayerBlocking()) {
+                                                    swap = true;
+                                                } else if (this.attackDelayMS <= 50L) {
+                                                    PacketUtil.sendPacket(new C09PacketHeldItemChange(swordsSlot));
+                                                    ((IAccessorPlayerControllerMP) mc.playerController).setCurrentPlayerItem(swordsSlot);
+                                                    this.startBlock(mc.thePlayer.inventory.getStackInSlot(swordsSlot));
+                                                    attack = false;
+                                                    this.blockTick = 0;
+                                                }
+                                                break;
+                                            default:
+                                                this.blockTick = 0;
+                                        }
+                                        Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
+                                        this.isBlocking = true;
+                                        this.fakeBlockState = true;
+                                        break;
+                                    }
+                                }
                                 Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
                                 this.isBlocking = false;
                                 this.fakeBlockState = false;
+                                break;
+                            case 7:
+                                if (this.hasValidTarget()) {
+                                    if (!Epilogue.playerStateManager.digging && !Epilogue.playerStateManager.placing) {
+                                        switch (this.blockTick) {
+                                            case 0:
+                                                if (!this.isPlayerBlocking()) {
+                                                    swap = true;
+                                                }
+                                                this.blockTick = 1;
+                                                break;
+                                            case 1:
+                                                if (this.isPlayerBlocking()) {
+                                                    this.stopBlock();
+                                                    attack = false;
+                                                }
+                                                if (this.attackDelayMS <= 50L) {
+                                                    this.blockTick = 0;
+                                                }
+                                                break;
+                                            default:
+                                                this.blockTick = 0;
+                                        }
+                                    }
+                                    Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
+                                    this.isBlocking = true;
+                                    this.fakeBlockState = false;
+                                } else {
+                                    Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
+                                    this.isBlocking = false;
+                                    this.fakeBlockState = false;
+                                }
+                                break;
+                            case 8:
+                                Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
+                                this.isBlocking = false;
+                                this.fakeBlockState = this.hasValidTarget();
+                                if (PlayerUtil.isUsingItem() && !this.isPlayerBlocking() && !Epilogue.playerStateManager.digging && !Epilogue.playerStateManager.placing) {
+                                    swap = true;
+                                }
+                        }
+                    }
+                    boolean attacked = false;
+                    if (this.rotations.getValue() == 4 && this.smoothBack.getValue() && (this.target == null || !this.isBoxInSwingRange(this.target.getBox()))) {
+                        Rotation currentRot = this.serverRotation;
+                        Rotation playerRot = new Rotation(mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch);
+                        if (Math.abs(MathHelper.wrapAngleTo180_float(currentRot.yaw - playerRot.yaw)) > 1.0F || Math.abs(MathHelper.wrapAngleTo180_float(currentRot.pitch - playerRot.pitch)) > 1.0F) {
+                            this.isSmoothBacking = true;
+                            Rotation nextRot = getSmoothBackRotation(currentRot, playerRot);
+                            this.serverRotation = nextRot;
+                            event.setRotation(nextRot.yaw, nextRot.pitch, 1);
+                            if (this.moveFix.getValue() != 0) {
+                                event.setPervRotation(nextRot.yaw, 1);
                             }
-                            break;
+                        } else {
+                            this.isSmoothBacking = false;
+                            this.serverRotation = playerRot;
                         }
                     }
-                }
-                boolean attacked = false;
-                if (this.isBoxInSwingRange(this.target.getBox())) {
-                    if (!rotationBlocked && (this.rotations.getValue() == 2 || this.rotations.getValue() == 3)) {
+                    if (this.target != null && this.isBoxInSwingRange(this.target.getBox())) {
+                        if (this.rotations.getValue() == 4) {
+                            Rotation currentRot = this.serverRotation;
+                            if (Float.isNaN(currentRot.yaw) || Float.isNaN(currentRot.pitch)) {
+                                currentRot = new Rotation(mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch);
+                            }
 
-                        float[] rotations = RotationUtil.getRotationsToBox(
-                                this.target.getBox(),
-                                event.getYaw(),
-                                event.getPitch(),
-                                90F + RandomUtil.nextFloat(-5.0F, 5.0F),
-                                0
-                        );
-                        event.setRotation(rotations[0], rotations[1], 1);
-                        if (this.rotations.getValue() == 3) {
-                            Epilogue.rotationManager.setRotation(rotations[0], rotations[1], 1, true);
-                        }
-                        if (this.moveFix.getValue() != 0 || this.rotations.getValue() == 3) {
-                            event.setPervRotation(rotations[0], 1);
-                        }
-                    } else if (!rotationBlocked && this.rotations.getValue() == 4) {
-
-                        simRotationSystem.setYawAlgorithm(yaw.getValuePrompt());
-                        simRotationSystem.setPitchAlgorithm(pitch.getValuePrompt());
-                        simRotationSystem.setSimulateFriction(true);
-                        simRotationSystem.setDebugTurnSpeed(false);
-                        simRotationSystem.setFrictionAlgorithm("TimeIncremental");
-                        Rotation base = new Rotation(event.getYaw(), event.getPitch());
-                        Rotation next = simRotationSystem.compute(this.target.getEntity(), base);
-                        Rotation clamped = clampStep(base, next);
-                        event.setRotation(clamped.yaw, clamped.pitch, 1);
-                        if (this.moveFix.getValue() != 0) {
-                            event.setPervRotation(event.getNewYaw(), 1);
+                            Rotation nextRot = updateLiquidBounceRotation(currentRot);
+                            this.serverRotation = nextRot;
+                            updateRenderAimPosition(nextRot);
+                            event.setRotation(nextRot.yaw, nextRot.pitch, 1);
+                            if (this.moveFix.getValue() != 0) {
+                                event.setPervRotation(nextRot.yaw, 1);
+                            }
+                            mc.thePlayer.rotationYawHead = nextRot.yaw;
+                            mc.thePlayer.renderYawOffset = nextRot.yaw;
+                            if (attack) {
+                                attacked = this.performAttack(nextRot.yaw, nextRot.pitch);
+                            }
+                        } else if (this.rotations.getValue() >= 1) {
+                            float randomYaw = RandomUtil.nextFloat(-2.5F, 2.5F);
+                            float randomPitch = RandomUtil.nextFloat(-1.5F, 1.5F);
+                            float[] rotations = RotationUtil.getRotationsToBox(
+                                    this.target.getBox(),
+                                    event.getYaw(),
+                                    event.getPitch(),
+                                    (float) this.angleStep.getValue() + RandomUtil.nextFloat(-5.0F, 5.0F),
+                                    (float) this.smoothing.getValue() / 100.0F
+                            );
+                            float finalYaw = rotations[0] + randomYaw;
+                            float finalPitch = rotations[1] + randomPitch;
+                            if (finalPitch > 90) finalPitch = 90;
+                            if (finalPitch < -90) finalPitch = -90;
+                            event.setRotation(finalYaw, finalPitch, 1);
+                            if (this.rotations.getValue() == 3) {
+                                Epilogue.rotationManager.setRotation(finalYaw, finalPitch, 1, true);
+                            } else {
+                                mc.thePlayer.rotationYawHead = finalYaw;
+                                mc.thePlayer.renderYawOffset = finalYaw;
+                            }
+                            if (this.moveFix.getValue() != 0 || this.rotations.getValue() == 3) {
+                                event.setPervRotation(finalYaw, 1);
+                            }
+                            if (attack) {
+                                attacked = this.performAttack(event.getNewYaw(), event.getNewPitch());
+                            }
+                        } else {
+                            if (attack) {
+                                attacked = this.performAttack(event.getNewYaw(), event.getNewPitch());
+                            }
                         }
                     }
-                    if (attack) {
-                        attacked = this.performAttack(event.getNewYaw(), event.getNewPitch());
+                    if (swap) {
+                        if (attacked) {
+                            this.interactAttack(event.getNewYaw(), event.getNewPitch());
+                        } else {
+                            this.sendUseItem();
+                        }
                     }
-                }
-
-                if (swap) {
-                    if (attacked) {
-                        this.interactAttack(event.getNewYaw(), event.getNewPitch());
-                    } else {
-                        this.sendUseItem();
+                    if (blocked) {
+                        Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
+                        Epilogue.blinkManager.setBlinkState(true, BlinkModules.AUTO_BLOCK);
                     }
-                }
-                if (blocked) {
-                    Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
-                    Epilogue.blinkManager.setBlinkState(true, BlinkModules.AUTO_BLOCK);
                 }
             }
         }
     }
 
+    private Rotation updateLiquidBounceRotation(Rotation current) {
+        if (this.target == null || System.currentTimeMillis() - this.lastRotationUpdateTime < ROTATION_UPDATE_INTERVAL_MS) {
+            return current;
+        }
+
+        this.lastRotationUpdateTime = System.currentTimeMillis();
+        EntityLivingBase targetEntity = this.target.getEntity();
+
+        AxisAlignedBB bb = targetEntity.getEntityBoundingBox().expand(targetEntity.getCollisionBorderSize(), targetEntity.getCollisionBorderSize(), targetEntity.getCollisionBorderSize());
+        Vec3 eyes = mc.thePlayer.getPositionEyes(1.0F);
+
+        Vec3 targetPoint = searchCenterPoint(bb, eyes);
+
+        if (targetPoint == null) {
+            targetPoint = new Vec3(
+                    (bb.minX + bb.maxX) / 2.0,
+                    (bb.minY + bb.maxY) / 2.0,
+                    (bb.minZ + bb.maxZ) / 2.0
+            );
+        }
+
+        if (this.liquidBouncePredict.getValue()) {
+            targetPoint = applyPrediction(targetPoint, targetEntity);
+        }
+
+        double diffX = targetPoint.xCoord - eyes.xCoord;
+        double diffY = targetPoint.yCoord - eyes.yCoord;
+        double diffZ = targetPoint.zCoord - eyes.zCoord;
+        double dist = MathHelper.sqrt_double(diffX * diffX + diffZ * diffZ);
+
+        float targetYaw = (float) (Math.atan2(diffZ, diffX) * 180.0D / Math.PI) - 90.0F;
+        float targetPitch = (float) (-(Math.atan2(diffY, dist) * 180.0D / Math.PI));
+
+        targetYaw = MathHelper.wrapAngleTo180_float(targetYaw);
+        targetPitch = MathHelper.wrapAngleTo180_float(targetPitch);
+
+        return limitAngleChange(current, new Rotation(targetYaw, targetPitch));
+    }
+
+    private Vec3 searchCenterPoint(AxisAlignedBB bb, Vec3 eyes) {
+        double scanRange = Math.max(this.attackRange.getValue(), this.swingRange.getValue());
+        double attackRange = this.attackRange.getValue();
+        double throughWallsRange = this.throughWalls.getValue() ? attackRange : 0;
+
+        double minBody = this.liquidBounceBodyPointMin.getValue();
+        double maxBody = this.liquidBounceBodyPointMax.getValue();
+        double hMin = 0.0;
+        double hMax = this.liquidBounceHorizontalSearch.getValue();
+
+        Vec3 bestPoint = null;
+        double bestScore = Double.MAX_VALUE;
+
+        for (double x = hMin; x <= hMax; x += 0.25) {
+            for (double y = minBody; y <= maxBody; y += 0.25) {
+                for (double z = hMin; z <= hMax; z += 0.25) {
+                    Vec3 point = new Vec3(
+                            bb.minX + (bb.maxX - bb.minX) * x,
+                            bb.minY + (bb.maxY - bb.minY) * y,
+                            bb.minZ + (bb.maxZ - bb.minZ) * z
+                    );
+
+                    double distance = eyes.distanceTo(point);
+
+                    if (distance > scanRange) {
+                        continue;
+                    }
+
+                    boolean visible = isVisible(eyes, point);
+                    if (!visible && distance > throughWallsRange) {
+                        continue;
+                    }
+
+                    double score = distance;
+                    if (distance > attackRange) {
+                        score += 10.0;
+                    }
+                    if (!visible) {
+                        score += 5.0;
+                    }
+
+                    if (this.liquidBounceRandomize.getValue()) {
+                        score += random.nextDouble() * this.liquidBounceRandomizeRange.getValue() * 5.0;
+                    }
+
+                    if (score < bestScore) {
+                        bestScore = score;
+                        bestPoint = point;
+                    }
+                }
+            }
+        }
+
+        return bestPoint;
+    }
+
+    private boolean isVisible(Vec3 from, Vec3 to) {
+        if (this.throughWalls.getValue()) {
+            return true;
+        }
+        return mc.theWorld.rayTraceBlocks(from, to, false, true, false) == null;
+    }
+
+    private Vec3 applyPrediction(Vec3 point, EntityLivingBase entity) {
+        double predictX = entity.posX + entity.motionX * this.liquidBouncePredictSize.getValue();
+        double predictY = entity.posY + entity.motionY * this.liquidBouncePredictSize.getValue() * 0.5;
+        double predictZ = entity.posZ + entity.motionZ * this.liquidBouncePredictSize.getValue();
+
+        double offsetX = point.xCoord - entity.posX;
+        double offsetY = point.yCoord - entity.posY;
+        double offsetZ = point.zCoord - entity.posZ;
+
+        return new Vec3(predictX + offsetX, predictY + offsetY, predictZ + offsetZ);
+    }
+
+    private Rotation limitAngleChange(Rotation current, Rotation target) {
+        float maxHorizontalChange = this.liquidBounceHorizontalSpeed.getValue();
+        float maxVerticalChange = this.liquidBounceVerticalSpeed.getValue();
+        float smoothFactor = this.liquidBounceSmoothFactor.getValue();
+
+        float yawDiff = MathHelper.wrapAngleTo180_float(target.yaw - current.yaw);
+        float pitchDiff = MathHelper.wrapAngleTo180_float(target.pitch - current.pitch);
+
+        yawDiff = MathHelper.clamp_float(yawDiff, -maxHorizontalChange, maxHorizontalChange);
+        pitchDiff = MathHelper.clamp_float(pitchDiff, -maxVerticalChange, maxVerticalChange);
+
+        yawDiff *= smoothFactor;
+        pitchDiff *= smoothFactor;
+
+        return new Rotation(
+                current.yaw + yawDiff,
+                MathHelper.clamp_float(current.pitch + pitchDiff, -90.0f, 90.0f)
+        );
+    }
+
+    private void updateRenderAimPosition(Rotation rotation) {
+        if (rotation == null || mc.thePlayer == null) {
+            this.currentAimVec = null;
+            return;
+        }
+        float yawRad = rotation.yaw * (float) Math.PI / 180.0F;
+        float pitchRad = rotation.pitch * (float) Math.PI / 180.0F;
+        double lookX = -Math.sin(yawRad) * Math.cos(pitchRad);
+        double lookY = -Math.sin(pitchRad);
+        double lookZ = Math.cos(yawRad) * Math.cos(pitchRad);
+        Vec3 eyePos = mc.thePlayer.getPositionEyes(1.0F);
+        double renderDistance = Math.max(0.1, mc.thePlayer.getDistanceToEntity(this.target.getEntity()) * 0.5);
+        renderDistance = Math.min(renderDistance, 4.0);
+        this.currentAimVec = new Vec3(
+                eyePos.xCoord + lookX * renderDistance,
+                eyePos.yCoord + lookY * renderDistance,
+                eyePos.zCoord + lookZ * renderDistance
+        );
+    }
+
+    private Rotation getSmoothBackRotation(Rotation current, Rotation target) {
+        float yawDiff = MathHelper.wrapAngleTo180_float(target.yaw - current.yaw);
+        float pitchDiff = MathHelper.wrapAngleTo180_float(target.pitch - current.pitch);
+        float speed = Math.max(5.0f, Math.abs(yawDiff) * 0.3f);
+        float yawStep = MathHelper.clamp_float(yawDiff, -speed, speed);
+        float pitchStep = MathHelper.clamp_float(pitchDiff, -speed, speed);
+        return new Rotation(current.yaw + yawStep, current.pitch + pitchStep);
+    }
+
     @EventTarget
     public void onTick(TickEvent event) {
-        if (this.isEnabled()) {
+        if (this.isEnabled() || this.wantsToDisable) {
             switch (event.getType()) {
                 case PRE:
-                    if (this.postTargetLostTicks > 0) {
-                        this.postTargetLostTicks--;
-                        this.target = null;
-                        break;
+                    if (this.target == null && !this.isSmoothBacking && !this.wantsToDisable) {
+                        this.serverRotation = new Rotation(mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch);
+                        this.currentAimVec = null;
                     }
+                    ArrayList<EntityLivingBase> validTargets = new ArrayList<>();
+                    boolean needsNewTarget = false;
                     if (this.target == null
                             || !this.isValidTarget(this.target.getEntity())
                             || this.isBoxInAttackRange(this.target.getBox())
                             || !this.isBoxInSwingRange(this.target.getBox())
                             || this.timer.hasTimeElapsed(this.switchDelay.getValue().longValue())) {
-
+                        needsNewTarget = true;
                         this.timer.reset();
-                        ArrayList<EntityLivingBase> targets = new ArrayList<>();
-                        for (Entity entity : mc.theWorld.loadedEntityList) {
-                            if (entity instanceof EntityLivingBase
-                                    && this.isValidTarget((EntityLivingBase) entity)
-                                    && this.isInRange((EntityLivingBase) entity)) {
-                                targets.add((EntityLivingBase) entity);
-                            }
+                    }
+                    for (Entity entity : mc.theWorld.loadedEntityList) {
+                        if (entity instanceof EntityLivingBase
+                                && this.isValidTarget((EntityLivingBase) entity)
+                                && this.isInRange((EntityLivingBase) entity)) {
+                            validTargets.add((EntityLivingBase) entity);
                         }
-                        if (targets.isEmpty()) {
-                            this.target = null;
-                        } else {
-                            if (targets.stream().anyMatch(this::isInSwingRange)) {
-                                targets.removeIf(entityLivingBase -> !this.isInSwingRange(entityLivingBase));
-                            }
-                            if (targets.stream().anyMatch(this::isInAttackRange)) {
-                                targets.removeIf(entityLivingBase -> !this.isInAttackRange(entityLivingBase));
-                            }
-                            if (targets.stream().anyMatch(this::isPlayerTarget)) {
-                                targets.removeIf(entityLivingBase -> !this.isPlayerTarget(entityLivingBase));
-                            }
-                            targets.sort(
-                                    (entityLivingBase1, entityLivingBase2) -> {
-                                        int sortBase = 0;
-                                        switch (this.sort.getValue()) {
-                                            case 1:
-                                                sortBase = Float.compare(TeamUtil.getHealthScore(entityLivingBase1), TeamUtil.getHealthScore(entityLivingBase2));
-                                                break;
-                                            case 2:
-                                                sortBase = Integer.compare(entityLivingBase1.hurtResistantTime, entityLivingBase2.hurtResistantTime);
-                                                break;
-                                            case 3:
-                                                sortBase = Float.compare(
-                                                        RotationUtil.angleToEntity(entityLivingBase1),
-                                                        RotationUtil.angleToEntity(entityLivingBase2)
-                                                );
-                                        }
-                                        return sortBase != 0
-                                                ? sortBase
-                                                : Double.compare(RotationUtil.distanceToEntity(entityLivingBase1), RotationUtil.distanceToEntity(entityLivingBase2));
+                    }
+                    if (validTargets.isEmpty()) {
+                        this.target = null;
+                        this.currentAimVec = null;
+                    } else {
+                        if (validTargets.stream().anyMatch(this::isInSwingRange)) {
+                            validTargets.removeIf(entityLivingBase -> !this.isInSwingRange(entityLivingBase));
+                        }
+                        if (validTargets.stream().anyMatch(this::isInAttackRange)) {
+                            validTargets.removeIf(entityLivingBase -> !this.isInAttackRange(entityLivingBase));
+                        }
+                        if (validTargets.stream().anyMatch(this::isPlayerTarget)) {
+                            validTargets.removeIf(entityLivingBase -> !this.isPlayerTarget(entityLivingBase));
+                        }
+                        validTargets.sort(
+                                (entityLivingBase1, entityLivingBase2) -> {
+                                    int sortBase = 0;
+                                    switch (this.sort.getValue()) {
+                                        case 1:
+                                            sortBase = Float.compare(TeamUtil.getHealthScore(entityLivingBase1), TeamUtil.getHealthScore(entityLivingBase2));
+                                            break;
+                                        case 2:
+                                            sortBase = Integer.compare(entityLivingBase1.hurtResistantTime, entityLivingBase2.hurtResistantTime);
+                                            break;
+                                        case 3:
+                                            sortBase = Float.compare(
+                                                    RotationUtil.angleToEntity(entityLivingBase1),
+                                                    RotationUtil.angleToEntity(entityLivingBase2)
+                                            );
                                     }
-                            );
+                                    return sortBase != 0
+                                            ? sortBase
+                                            : Double.compare(RotationUtil.distanceToEntity(entityLivingBase1), RotationUtil.distanceToEntity(entityLivingBase2));
+                                }
+                        );
+                        if (needsNewTarget) {
                             if (this.mode.getValue() == 1 && this.hitRegistered) {
                                 this.hitRegistered = false;
                                 this.switchTick++;
                             }
-                            if (this.mode.getValue() == 0 || this.switchTick >= targets.size()) {
+                            if (this.mode.getValue() == 0 || this.switchTick >= validTargets.size()) {
                                 this.switchTick = 0;
                             }
-                            this.target = new AttackData(targets.get(this.switchTick));
+                            EntityLivingBase newTarget = validTargets.get(this.switchTick);
+                            boolean targetChanged = this.target == null || this.target.getEntity() != newTarget;
+                            if (targetChanged) {
+                                this.target = new AttackData(newTarget, this);
+                            }
                         }
                     }
                     if (this.target != null) {
-                        this.target = new AttackData(this.target.getEntity());
+                        this.target.update();
                     }
                     break;
                 case POST:
@@ -639,20 +1112,6 @@ public class Aura extends Module {
                     }
             }
         }
-    }
-
-    private int findEmptySlot(int currentSlot) {
-        int i;
-        for (i = 0; i < 9; ++i) {
-            if (i == currentSlot || Aura.mc.thePlayer.inventory.getStackInSlot(i) != null) continue;
-            return i;
-        }
-        for (i = 0; i < 9; ++i) {
-            ItemStack stack;
-            if (i == currentSlot || (stack = Aura.mc.thePlayer.inventory.getStackInSlot(i)) == null || stack.hasDisplayName()) continue;
-            return i;
-        }
-        return Math.floorMod(currentSlot - 1, 9);
     }
 
     @EventTarget(Priority.LOWEST)
@@ -670,22 +1129,117 @@ public class Aura extends Module {
                     mc.thePlayer.stopUsingItem();
                 }
             }
+            if (this.debugLog.getValue() == 1 && this.isAttackAllowed()) {
+                if (event.getPacket() instanceof S06PacketUpdateHealth) {
+                    float packet = ((S06PacketUpdateHealth) event.getPacket()).getHealth() - mc.thePlayer.getHealth();
+                    if (packet != 0.0F && this.lastTickProcessed != mc.thePlayer.ticksExisted) {
+                        this.lastTickProcessed = mc.thePlayer.ticksExisted;
+                        ChatUtil.sendFormatted(
+                                String.format(
+                                        "%sHealth: %s&l%s&r (&otick: %d&r)&r",
+                                        Epilogue.clientName,
+                                        packet > 0.0F ? "&a" : "&c",
+                                        df.format(packet),
+                                        mc.thePlayer.ticksExisted
+                                )
+                        );
+                    }
+                }
+                if (event.getPacket() instanceof S1CPacketEntityMetadata) {
+                    S1CPacketEntityMetadata packet = (S1CPacketEntityMetadata) event.getPacket();
+                    if (packet.getEntityId() == mc.thePlayer.getEntityId()) {
+                        for (WatchableObject watchableObject : packet.func_149376_c()) {
+                            if (watchableObject.getDataValueId() == 6) {
+                                float diff = (Float) watchableObject.getObject() - mc.thePlayer.getHealth();
+                                if (diff != 0.0F && this.lastTickProcessed != mc.thePlayer.ticksExisted) {
+                                    this.lastTickProcessed = mc.thePlayer.ticksExisted;
+                                    ChatUtil.sendFormatted(
+                                            String.format(
+                                                    "%sHealth: %s&l%s&r (&otick: %d&r)&r",
+                                                    Epilogue.clientName,
+                                                    diff > 0.0F ? "&a" : "&c",
+                                                    df.format(diff),
+                                                    mc.thePlayer.ticksExisted
+                                            )
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
     @EventTarget
     public void onMove(MoveInputEvent event) {
-        if (this.isEnabled()) {
-            if ((this.moveFix.getValue() == 1)
-                    && this.rotations.getValue() != 3
-                    && RotationState.isActived()
-                    && RotationState.getPriority() == 1.0F
-                    && MoveUtil.isForwardPressed()) {
-                MoveUtil.fixStrafe(RotationState.getSmoothedYaw());
+        if (this.isEnabled() || this.wantsToDisable) {
+            boolean isSilent = this.rotations.getValue() == 2;
+            boolean isLiquidBounce = this.rotations.getValue() == 4;
+            if (this.moveFix.getValue() != 0 && (isSilent || isLiquidBounce)) {
+                if (RotationState.isActived() && RotationState.getPriority() == 1.0F && MoveUtil.isForwardPressed()) {
+                    MoveUtil.fixStrafe(RotationState.getSmoothedYaw());
+                }
             }
             if (this.shouldAutoBlock()) {
                 mc.thePlayer.movementInput.jump = false;
             }
+        }
+    }
+
+    @EventTarget
+    public void onRender3D(Render3DEvent event) {
+        try {
+            if (mc.getRenderManager() == null || mc.getRenderViewEntity() == null) return;
+            IAccessorRenderManager renderManagerAccessor = (IAccessorRenderManager) mc.getRenderManager();
+            double viewerX = renderManagerAccessor.getRenderPosX();
+            double viewerY = renderManagerAccessor.getRenderPosY();
+            double viewerZ = renderManagerAccessor.getRenderPosZ();
+            if (this.isEnabled() && target != null) {
+                if (this.showTarget.getValue() != 0
+                        && TeamUtil.isEntityLoaded(this.target.getEntity())
+                        && this.isAttackAllowed()) {
+                    Color color = new Color(-1);
+                    if (this.showTarget.getValue() == 1) {
+                        if (this.target.getEntity().hurtTime > 0) {
+                            color = new Color(16733525);
+                        } else {
+                            color = new Color(5635925);
+                        }
+                    }
+                    RenderUtil.enableRenderState();
+                    RenderUtil.drawEntityBox(this.target.getEntity(), color.getRed(), color.getGreen(), color.getBlue());
+                    RenderUtil.disableRenderState();
+                }
+            }
+            if ((this.isEnabled() || this.wantsToDisable) && this.visualizeAim.getValue() && this.currentAimVec != null) {
+                double x = this.currentAimVec.xCoord;
+                double y = this.currentAimVec.yCoord;
+                double z = this.currentAimVec.zCoord;
+                x -= viewerX;
+                y -= viewerY;
+                z -= viewerZ;
+                GlStateManager.pushMatrix();
+                GlStateManager.enableBlend();
+                GlStateManager.disableDepth();
+                GlStateManager.disableTexture2D();
+                GlStateManager.disableLighting();
+                GlStateManager.depthMask(false);
+                GlStateManager.color(0.0F, 1.0F, 1.0F, 0.8F);
+                double size = 0.08;
+                AxisAlignedBB bb = new AxisAlignedBB(x - size, y - size, z - size, x + size, y + size, z + size);
+                RenderGlobal.drawSelectionBoundingBox(bb);
+                GlStateManager.color(0.0F, 1.0F, 0.0F, 0.5F);
+                GL11.glLineWidth(2.0F);
+                RenderGlobal.drawOutlinedBoundingBox(bb, 0, 255, 0, 128);
+                GlStateManager.depthMask(true);
+                GlStateManager.enableTexture2D();
+                GlStateManager.enableDepth();
+                GlStateManager.disableBlend();
+                GlStateManager.popMatrix();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -731,114 +1285,65 @@ public class Aura extends Module {
 
     @Override
     public void onEnabled() {
-        this.target = null;
-        this.switchTick = 0;
-        this.hitRegistered = false;
-        this.attackDelayMS = 0L;
-        this.blockTick = 0;
-        this.postTargetLostTicks = 0;
+        if (!this.wantsToDisable) {
+            this.target = null;
+            this.switchTick = 0;
+            this.hitRegistered = false;
+            this.attackDelayMS = 0L;
+            this.blockTick = 0;
+            this.serverRotation = new Rotation(mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch);
+            this.currentAimVec = null;
+            this.isSmoothBacking = false;
+            this.lastRotationUpdateTime = 0;
+            this.patternIndex = 0;
+        }
     }
 
     @Override
     public void onDisabled() {
-        Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
-        ((IAccessorPlayerControllerMP) mc.playerController).callSyncCurrentPlayItem();
-        if (this.blockingState || this.isBlocking || this.fakeBlockState || mc.thePlayer.isUsingItem()) {
-            this.stopBlock();
+        if (this.rotations.getValue() == 4 && this.smoothBack.getValue()) {
+            Rotation currentRot = this.serverRotation;
+            Rotation playerRot = new Rotation(mc.thePlayer.rotationYaw, mc.thePlayer.rotationPitch);
+            if (Math.abs(MathHelper.wrapAngleTo180_float(currentRot.yaw - playerRot.yaw)) > 1.0F || Math.abs(MathHelper.wrapAngleTo180_float(currentRot.pitch - playerRot.pitch)) > 1.0F) {
+                this.wantsToDisable = true;
+                this.setEnabled(true);
+                return;
+            }
         }
+        Epilogue.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
         this.blockingState = false;
         this.isBlocking = false;
         this.fakeBlockState = false;
-        this.postTargetLostTicks = 0;
-        mc.thePlayer.stopUsingItem();
-        mc.thePlayer.clearItemInUse();
-    }
-
-    @Override
-    public void verifyValue(String mode) {
-        if (!this.autoBlock.getName().equals(mode) && !this.autoBlockCPS.getName().equals(mode)) {
-            if (this.swingRange.getName().equals(mode)) {
-                if (this.swingRange.getValue() < this.attackRange.getValue()) {
-                    this.attackRange.setValue(this.swingRange.getValue());
-                }
-            } else if (this.attackRange.getName().equals(mode)) {
-                if (this.swingRange.getValue() < this.attackRange.getValue()) {
-                    this.swingRange.setValue(this.attackRange.getValue());
-                }
-            } else if (this.minCPS.getName().equals(mode)) {
-                if (this.minCPS.getValue() > this.maxCPS.getValue()) {
-                    this.maxCPS.setValue(this.minCPS.getValue());
-                }
-            } else {
-                if (this.maxCPS.getName().equals(mode) && this.minCPS.getValue() > this.maxCPS.getValue()) {
-                    this.minCPS.setValue(this.maxCPS.getValue());
-                }
-            }
-        } else {
-            boolean badCps = this.autoBlock.getValue() == 2
-                    || this.autoBlock.getValue() == 3
-                    || this.autoBlock.getValue() == 4
-                    || this.autoBlock.getValue() == 5
-                    || this.autoBlock.getValue() == 6
-                    || this.autoBlock.getValue() == 7;
-            if (badCps && this.autoBlockCPS.getValue() > 10.0F) {
-                this.autoBlockCPS.setValue(10.0F);
-            }
-        }
+        this.wantsToDisable = false;
+        this.currentAimVec = null;
     }
 
     @Override
     public String[] getSuffix() {
-        return new String[]{CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.UPPER_CAMEL, this.mode.getModeString()), this.autoBlock.getModeString()};
+        return new String[]{CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.UPPER_CAMEL, this.mode.getModeString())};
     }
 
+    @Getter
     public static class AttackData {
         private final EntityLivingBase entity;
-        private final AxisAlignedBB box;
-        private final double x;
-        private final double y;
-        private final double z;
+        private final Aura Aura;
+        private AxisAlignedBB box;
+        private double x;
+        private double y;
+        private double z;
 
-        public EntityLivingBase getEntity() { return entity; }
-        public AxisAlignedBB getBox() { return box; }
-        public double getX() { return x; }
-        public double getY() { return y; }
-        public double getZ() { return z; }
-
-        public AttackData(EntityLivingBase entityLivingBase) {
+        public AttackData(EntityLivingBase entityLivingBase, Aura Aura) {
             this.entity = entityLivingBase;
-            double collisionBorderSize = entityLivingBase.getCollisionBorderSize();
-            this.box = entityLivingBase.getEntityBoundingBox().expand(collisionBorderSize, collisionBorderSize, collisionBorderSize);
-            this.x = entityLivingBase.posX;
-            this.y = entityLivingBase.posY;
-            this.z = entityLivingBase.posZ;
+            this.Aura = Aura;
+            update();
         }
 
-    }
-
-    private void setNextSlot() {
-        int bestSwapSlot = getNextSlot();
-        mc.thePlayer.sendQueue.addToSendQueue(new C09PacketHeldItemChange(bestSwapSlot));
-        swapped = true;
-    }
-
-    private void setCurrentSlot() {
-        if (!swapped) {
-            return;
+        public void update() {
+            double collisionBorderSize = entity.getCollisionBorderSize();
+            this.box = entity.getEntityBoundingBox().expand(collisionBorderSize, collisionBorderSize, collisionBorderSize);
+            this.x = entity.posX;
+            this.y = entity.posY;
+            this.z = entity.posZ;
         }
-        mc.thePlayer.sendQueue.addToSendQueue(new C09PacketHeldItemChange(mc.thePlayer.inventory.currentItem));
-        swapped = false;
-    }
-
-    private int getNextSlot() {
-        int currentSlot = mc.thePlayer.inventory.currentItem;
-        int next;
-        if (currentSlot < 8) {
-            next = currentSlot + 1;
-        }
-        else {
-            next = currentSlot - 1;
-        }
-        return next;
     }
 }
