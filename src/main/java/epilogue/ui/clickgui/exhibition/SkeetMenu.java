@@ -47,12 +47,11 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
 import java.util.Arrays;
-import java.util.Collections;
+import java.lang.reflect.Field;
 import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.Objects;
+
 import org.lwjgl.opengl.GL11;
 
 import static org.lwjgl.opengl.GL11.GL_SCISSOR_TEST;
@@ -135,15 +134,13 @@ public class SkeetMenu extends UI {
     public void mainConstructor(ClickGui p0) {
     }
 
-    private ResourceLocation tex = new ResourceLocation("epilogue/texture/skeetui/tex.png");
-    private ResourceLocation texture = new ResourceLocation("epilogue/texture/skeetui/skeetchainmail.png");
-    private ResourceLocation cursor = new ResourceLocation("epilogue/texture/skeetui/cursor.png");
+    private final ResourceLocation tex = new ResourceLocation("epilogue/texture/skeetui/tex.png");
+    private final ResourceLocation texture = new ResourceLocation("epilogue/texture/skeetui/skeetchainmail.png");
+    private final ResourceLocation cursor = new ResourceLocation("epilogue/texture/skeetui/cursor.png");
 
-    private Translate bar = new Translate(0, 0);
+    private final Translate bar = new Translate(0, 0);
 
     private final Map<ColorPreview, ColorValue> colorValueByPreview = new IdentityHashMap<>();
-    private final Map<ColorPreview, Class<?>> colorModuleClassByPreview = new IdentityHashMap<>();
-    private final Map<ColorPreview, String> colorValueNameByPreview = new IdentityHashMap<>();
 
     private int lastColorsCount;
 
@@ -520,8 +517,6 @@ public class SkeetMenu extends UI {
         if (categoryButton.name.equalsIgnoreCase("Colors")) {
             categoryPanel.colorPreviews.clear();
             colorValueByPreview.clear();
-            colorModuleClassByPreview.clear();
-            colorValueNameByPreview.clear();
 
             float clipX = categoryButton.panel.x + 40;
             float clipW = 340 - 40 - 4;
@@ -544,22 +539,25 @@ public class SkeetMenu extends UI {
 
             int idx = 0;
             for (epilogue.module.Module backing : backingModules) {
-                java.util.List<Value<?>> values = null;
-                if (Epilogue.valueHandler != null && Epilogue.valueHandler.properties != null) {
-                    java.util.List<Value<?>> direct = Epilogue.valueHandler.properties.get(backing.getClass());
-                    if (direct != null) values = new LinkedList<>(direct);
-                }
+                java.util.List<Value<?>> values = (Epilogue.valueHandler != null && Epilogue.valueHandler.properties != null)
+                        ? Epilogue.valueHandler.properties.get(backing.getClass())
+                        : null;
                 if (values == null) continue;
-                values.sort(java.util.Comparator.comparing(Value::getName, String.CASE_INSENSITIVE_ORDER));
 
+                java.util.List<ColorValue> colors = new java.util.ArrayList<>();
                 for (Value<?> v : values) {
-                    if (!(v instanceof ColorValue)) continue;
-                    ColorValue cv = (ColorValue) v;
+                    if (v instanceof ColorValue) {
+                        colors.add((ColorValue) v);
+                    }
+                }
+                colors.sort(java.util.Comparator.comparing(Value::getName, String.CASE_INSENSITIVE_ORDER));
 
+                for (ColorValue cv : colors) {
                     float px;
                     float py;
                     int col = idx % 3;
                     int row = idx / 3;
+
                     px = col == 0 ? col0X : (col == 1 ? col1X : col2X);
                     py = baseY + (row * 57);
 
@@ -574,8 +572,6 @@ public class SkeetMenu extends UI {
                     ColorPreview preview = new ColorPreview(obj, label, px, py, categoryButton);
                     categoryPanel.colorPreviews.add(preview);
                     colorValueByPreview.put(preview, cv);
-                    colorModuleClassByPreview.put(preview, backing.getClass());
-                    colorValueNameByPreview.put(preview, cv.getName());
                     idx++;
                 }
             }
@@ -865,7 +861,7 @@ public class SkeetMenu extends UI {
 
         float clipX = categoryPanel.categoryButton.panel.x + xOff + 40;
         float clipY = categoryPanel.categoryButton.panel.y + yOff + 12;
-        float clipW = 340 - 40 - 2;
+        float clipW = 340 - 40 - 4;
         float clipH = 340 - 18;
 
         categoryPanel.clipX = clipX;
@@ -1015,7 +1011,7 @@ public class SkeetMenu extends UI {
         if (!panel.visible) return;
         float xOff = panel.categoryButton.panel.dragX;
         float yOff = panel.categoryButton.panel.dragY;
-        boolean enableHover = p2 >= p0.x + xOff && p3 >= p0.y + yOff && p2 <= p0.x + 35 + xOff && p3 <= p0.y + 6 + yOff;
+        boolean enableHover = p2 >= p0.x + xOff && p3 >= yOff + p0.y && p2 <= xOff + p0.x + 35 && p3 <= yOff + p0.y + 6;
         String keyText = p0.module.getKey() != 0 ? "[" + KeyBindUtil.getKeyName(p0.module.getKey()) + "]" : "[-]";
         float keyW = Fonts.width(Fonts.tiny(), keyText);
         float keyX = (p0.x + xOff + 42) - keyW;
@@ -1485,19 +1481,6 @@ public class SkeetMenu extends UI {
         RenderingUtil.rectangle(xOff - 74, yOff - 6, xOff - 73 + labelW + 1, yOff - 4, Colors.getColor(17, (int) opacity.getOpacity()));
         Fonts.drawWithShadow(Fonts.tiny(), colorPreview.colorName, xOff - 73, yOff - 8, Colors.getColor(255, (int) opacity.getOpacity()));
 
-        ColorValue cv = resolveLiveColorValue(colorPreview);
-        if (cv != null) {
-            int rgb = cv.getValue();
-            int a = (rgb >> 24) & 0xFF;
-            int r = (rgb >> 16) & 0xFF;
-            int g = (rgb >> 8) & 0xFF;
-            int b = rgb & 0xFF;
-            colorPreview.colorObject.setRed(r);
-            colorPreview.colorObject.setGreen(g);
-            colorPreview.colorObject.setBlue(b);
-            colorPreview.colorObject.setAlpha(a);
-        }
-
         if (colorPreview.sliders != null && !colorPreview.sliders.isEmpty()) {
             colorPreview.sliders.get(0).draw(x, y);
         }
@@ -1505,17 +1488,6 @@ public class SkeetMenu extends UI {
 
     private ColorValue resolveLiveColorValue(ColorPreview preview) {
         if (preview == null) return null;
-        Class<?> moduleClass = colorModuleClassByPreview.get(preview);
-        String valueName = colorValueNameByPreview.get(preview);
-        if (moduleClass == null || valueName == null) return colorValueByPreview.get(preview);
-        if (Epilogue.valueHandler == null || Epilogue.valueHandler.properties == null) return colorValueByPreview.get(preview);
-        java.util.List<Value<?>> values = Epilogue.valueHandler.properties.get(moduleClass);
-        if (values == null) return colorValueByPreview.get(preview);
-        for (Value<?> v : values) {
-            if (v instanceof ColorValue && Objects.equals(v.getName(), valueName)) {
-                return (ColorValue) v;
-            }
-        }
         return colorValueByPreview.get(preview);
     }
 
@@ -1523,6 +1495,7 @@ public class SkeetMenu extends UI {
     public void colorPickerConstructor(HSVColorPicker slider, float x, float y) {
         if (slider == null) return;
         ColorObject co = slider.colorPreview.colorObject;
+
         int argb = Colors.getColor(co.getRed(), co.getGreen(), co.getBlue(), co.getAlpha());
         Color color = new Color(argb, true);
         slider.opacity = (float) co.getAlpha() / 255f;
@@ -1596,35 +1569,54 @@ public class SkeetMenu extends UI {
 
         boolean shouldUpdate = slider.selectingHue || slider.selectingColor || slider.selectingOpacity;
         if (shouldUpdate) {
-            Color tcolor = Color.getHSBColor(slider.hue, slider.saturation, slider.brightness);
-            int a = (int) (255 * slider.opacity);
             ColorValue cv = resolveLiveColorValue(slider.colorPreview);
             if (cv != null) {
                 cv.setHue(slider.hue);
                 cv.setSaturation(slider.saturation);
                 cv.setBrightness(slider.brightness);
             }
-            slider.colorPreview.colorObject.setRed(tcolor.getRed());
-            slider.colorPreview.colorObject.setGreen(tcolor.getGreen());
-            slider.colorPreview.colorObject.setBlue(tcolor.getBlue());
-            slider.colorPreview.colorObject.setAlpha(a);
-        } else {
-            ColorValue cv = resolveLiveColorValue(slider.colorPreview);
-            int rgb = cv != null ? cv.getValue() : Colors.getColor(slider.colorPreview.colorObject.getRed(), slider.colorPreview.colorObject.getGreen(), slider.colorPreview.colorObject.getBlue(), slider.colorPreview.colorObject.getAlpha());
-            int a = (rgb >> 24) & 0xFF;
+
+            int rgb = cv != null ? cv.getValue() : MathHelper.hsvToRGB(slider.hue, slider.saturation, slider.brightness);
             int r = (rgb >> 16) & 0xFF;
             int g = (rgb >> 8) & 0xFF;
             int b = rgb & 0xFF;
-            float[] hsb = Color.RGBtoHSB(r, g, b, null);
-            slider.opacity = a / 255f;
-            slider.hue = hsb[0];
-            slider.saturation = hsb[1];
-            slider.brightness = hsb[2];
+            slider.colorPreview.colorObject.setRed(r);
+            slider.colorPreview.colorObject.setGreen(g);
+            slider.colorPreview.colorObject.setBlue(b);
+            slider.colorPreview.colorObject.setAlpha(255);
+        } else {
+            ColorValue cv = resolveLiveColorValue(slider.colorPreview);
+            int rgb = cv != null ? cv.getValue() : Colors.getColor(slider.colorPreview.colorObject.getRed(), slider.colorPreview.colorObject.getGreen(), slider.colorPreview.colorObject.getBlue(), slider.colorPreview.colorObject.getAlpha());
+            if (cv != null) {
+                slider.hue = cv.getHue();
+                slider.saturation = cv.getSaturation();
+                slider.brightness = cv.getBrightness();
+
+                int r = (rgb >> 16) & 0xFF;
+                int g = (rgb >> 8) & 0xFF;
+                int b = rgb & 0xFF;
+                slider.colorPreview.colorObject.setRed(r);
+                slider.colorPreview.colorObject.setGreen(g);
+                slider.colorPreview.colorObject.setBlue(b);
+                slider.colorPreview.colorObject.setAlpha(255);
+
+                slider.opacity = 1f;
+            } else {
+                int a = (rgb >> 24) & 0xFF;
+                int r = (rgb >> 16) & 0xFF;
+                int g = (rgb >> 8) & 0xFF;
+                int b = rgb & 0xFF;
+                float[] hsb = Color.RGBtoHSB(r, g, b, null);
+                slider.opacity = a / 255f;
+                slider.hue = hsb[0];
+                slider.saturation = hsb[1];
+                slider.brightness = hsb[2];
+            }
         }
 
         if (x > xOff + 57 && y > yOff && x < xOff + 72 && y < yOff + 30) {
-            String hex = String.format("#%02X%02X%02X%02X", slider.colorPreview.colorObject.getAlpha(), slider.colorPreview.colorObject.getRed(), slider.colorPreview.colorObject.getGreen(), slider.colorPreview.colorObject.getBlue());
-            Fonts.drawWithShadow(Fonts.tiny(), hex + String.format(" rgba(%d, %d, %d, %d)", slider.colorPreview.colorObject.getRed(), slider.colorPreview.colorObject.getGreen(), slider.colorPreview.colorObject.getBlue(), slider.colorPreview.colorObject.getAlpha()),
+            String hex = String.format("#FF%02X%02X%02X", slider.colorPreview.colorObject.getRed(), slider.colorPreview.colorObject.getGreen(), slider.colorPreview.colorObject.getBlue());
+            Fonts.drawWithShadow(Fonts.tiny(), hex + String.format(" rgba(%d, %d, %d, %d)", slider.colorPreview.colorObject.getRed(), slider.colorPreview.colorObject.getGreen(), slider.colorPreview.colorObject.getBlue(), 255),
                     (slider.colorPreview.categoryPanel.panel.x + 2 + slider.colorPreview.categoryPanel.panel.dragX) + 55,
                     (slider.colorPreview.categoryPanel.panel.y + 9 + slider.colorPreview.categoryPanel.panel.dragY),
                     Colors.getColor(255, (int) opacity.getOpacity()));
@@ -1690,12 +1682,10 @@ public class SkeetMenu extends UI {
                             slider.saturation = hsb[1];
                             slider.brightness = hsb[2];
 
-                            ColorValue cv = colorValueByPreview.get(slider.colorPreview);
+                            ColorValue cv = resolveLiveColorValue(slider.colorPreview);
                             if (cv != null) {
-                                cv.setHue(slider.hue);
-                                cv.setSaturation(slider.saturation);
-                                cv.setBrightness(slider.brightness);
-                                cv.setValue((alpha << 24) | (cv.getValue() & 0xFFFFFF));
+                                int rgb = (alpha << 24) | (red << 16) | (green << 8) | blue;
+                                cv.setValue(rgb);
                             }
                             slider.colorPreview.colorObject.setRed(red);
                             slider.colorPreview.colorObject.setGreen(green);
