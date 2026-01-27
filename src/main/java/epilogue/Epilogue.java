@@ -99,6 +99,7 @@ public class Epilogue {
         moduleManager.modules.put(Disabler.class, new Disabler());
         moduleManager.modules.put(Eagle.class, new Eagle());
         moduleManager.modules.put(ESP.class, new ESP());
+        moduleManager.modules.put(ESP2D.class, new ESP2D());
         moduleManager.modules.put(FastPlace.class, new FastPlace());
         moduleManager.modules.put(Fly.class, new Fly());
         moduleManager.modules.put(FullBright.class, new FullBright());
