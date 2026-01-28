@@ -14,6 +14,7 @@ import epilogue.value.values.BooleanValue;
 import epilogue.value.values.IntValue;
 import epilogue.value.values.ModeValue;
 import epilogue.value.values.PercentValue;
+import epiloguemixinbridge.IAccessorEntityLivingBase;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
@@ -82,6 +83,8 @@ public class Scaffold extends Module {
     public final BooleanValue keepYonPress = new BooleanValue("Keep Y On Press", false, () -> this.keepY.getValue() != 0);
     public final BooleanValue multiplace = new BooleanValue("0 Tick Place", false);
     public final BooleanValue safeWalk = new BooleanValue("Safe Walk", false);
+    public final BooleanValue noJumpDelay = new BooleanValue("No Jump Delay", true);
+    public final IntValue delay = new IntValue("Delay", 0, 0, 8, () -> this.noJumpDelay.getValue());
     public final BooleanValue safe = new BooleanValue("Safe", false, () -> this.tower.getValue() == 3);
     public final IntValue safeStuckDelayTicksValue = new IntValue("Safe Delay Ticks", 1, 1, 3, () -> this.tower.getValue() == 3 && this.safe.getValue());
     public final BooleanValue swing = new BooleanValue("Swing", false);
@@ -774,6 +777,14 @@ public class Scaffold extends Module {
                 GlStateManager.enableDepth();
                 GlStateManager.popMatrix();
             }
+        }
+    }
+
+    @EventTarget(Priority.HIGHEST)
+    public void onTick(TickEvent event) {
+        if (this.isEnabled() && event.getType() == EventType.PRE && noJumpDelay.getValue()) {
+            ((IAccessorEntityLivingBase) mc.thePlayer)
+                    .setJumpTicks(Math.min(((IAccessorEntityLivingBase) mc.thePlayer).getJumpTicks(), this.delay.getValue() + 1));
         }
     }
 
